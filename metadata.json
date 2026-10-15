@@ -1,0 +1,6 @@
+{
+  "name": "Fana Voice News Studio - የዜና ድምፅ ስቱዲዮ",
+  "description": "ፕሮፌሽናል የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ማመንጫ ስቱዲዮ - በፋና ጋዜጠኞች ስልት የተፃፈውን የሚያነብ የዜና ፕሮዳክሽን",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
