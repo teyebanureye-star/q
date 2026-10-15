@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio, Mic, Play, Square, Loader2 } from "lucide-react";
+import { Radio, Mic, Play, Square, Loader2, Download } from "lucide-react";
 
 interface StudioHeaderProps {
   isPlaying: boolean;
@@ -68,6 +68,15 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           >
             የድምፅ ቅንብር (Mixer)
           </button>
+          <a
+            href="/api/download-zip"
+            download="fana-voice-studio.zip"
+            className="transition-colors whitespace-nowrap shrink-0 text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-800/60"
+            title="ሙሉውን የፕሮጀክት ኮድ በዚፕ (ZIP) አውርድ"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>GitHub ZIP አውርድ</span>
+          </a>
         </nav>
 
         {/* Zone 3: 1 Primary CTA */}

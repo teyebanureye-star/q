@@ -174,6 +174,19 @@ ${rawText}
   }
 });
 
+// Download full project zip package for GitHub upload
+app.get("/api/download-zip", (_req, res) => {
+  const zipPath = path.join(__dirname, "public", "fana-voice-studio.zip");
+  res.download(zipPath, "fana-voice-studio.zip", (err) => {
+    if (err) {
+      console.error("Error sending zip:", err);
+      if (!res.headersSent) res.status(500).send("Zip file error");
+    }
+  });
+});
+
+app.use(express.static(path.join(__dirname, "public")));
+
 // Setup Vite in Dev or serve static in Prod
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
@@ -195,4 +208,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
