@@ -7,10 +7,6 @@
     {
       "source": "/api/news/format",
       "destination": "/api/news/format"
-    },
-    {
-      "source": "/api/download-zip",
-      "destination": "/api/download-zip"
     }
   ]
 }

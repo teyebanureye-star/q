@@ -14,9 +14,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "10mb" }));
 
+const rawApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+const cleanApiKey = rawApiKey.replace(/^["']|["']$/g, "").trim();
+
 // Initialize GoogleGenAI SDK on server-side
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: cleanApiKey,
   httpOptions: {
     headers: {
       "User-Agent": "aistudio-build",
@@ -204,17 +207,6 @@ ${rawText}
     console.error("News Format Error:", error?.message || error);
     return res.status(500).json({ error: error?.message || "ዜናውን ማስተካከል አልተቻለም" });
   }
-});
-
-// Download full project zip package for GitHub upload
-app.get("/api/download-zip", (_req, res) => {
-  const zipPath = path.join(__dirname, "public", "fana-voice-studio.zip");
-  res.download(zipPath, "fana-voice-studio.zip", (err) => {
-    if (err) {
-      console.error("Error sending zip:", err);
-      if (!res.headersSent) res.status(500).send("Zip file error");
-    }
-  });
 });
 
 app.use(express.static(path.join(__dirname, "public")));

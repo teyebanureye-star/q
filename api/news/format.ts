@@ -14,7 +14,8 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const rawKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+    const apiKey = rawKey.replace(/^["']|["']$/g, "").trim();
     if (!apiKey) {
       return res.status(401).json({
         error: "በ Vercel ላይ GEMINI_API_KEY አልተገኘም።",
