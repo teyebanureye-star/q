@@ -1,6 +1,6 @@
 import React from "react";
 import { VoiceAnchor } from "../types/studio";
-import { Volume2, CheckCircle2, Mic } from "lucide-react";
+import { Volume2, CheckCircle2, Mic, Radio, Play, Square } from "lucide-react";
 
 interface AnchorSelectorProps {
   anchors: VoiceAnchor[];
@@ -18,20 +18,29 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
   previewingAnchorId,
 }) => {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Mic className="w-4 h-4 text-amber-400" />
-            <span>የፋና ዜና ጋዜጠኞች (Voice Anchors)</span>
-          </h2>
-          <p className="text-xs text-neutral-400">
-            ጽሑፍዎን በሚያምርና ተፈጥሯዊ የኢትዮጵያዊ የዜና አቀራረብ ስልት የሚያነብ ጋዜጠኛ ይምረጡ
-          </p>
+    <div className="bg-neutral-900/95 border border-neutral-800 rounded-xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Mic className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <span>የፋና ዜና ጋዜጠኞች</span>
+              <span className="text-[11px] font-mono text-amber-400 font-normal px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                5 Anchors
+              </span>
+            </h2>
+            <p className="text-xs text-neutral-400">
+              ዜናዎን የሚያነብልዎትን የፋና ጋዜጠኛ ይምረጡ
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      {/* Anchor List Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
         {anchors.map((anchor) => {
           const isSelected = selectedAnchorId === anchor.id;
           const isPreviewing = previewingAnchorId === anchor.id;
@@ -40,75 +49,82 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
             <div
               key={anchor.id}
               onClick={() => onSelectAnchor(anchor)}
-              className={`group relative rounded-xl p-3.5 border transition-all cursor-pointer flex flex-col justify-between ${
+              className={`group relative rounded-xl p-3 border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                 isSelected
-                  ? "bg-gradient-to-b from-neutral-900 to-neutral-900/90 border-amber-500/80 shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/30"
-                  : "bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900/80"
+                  ? "bg-gradient-to-r from-amber-500/10 via-neutral-900 to-neutral-900 border-amber-500/80 shadow-md shadow-amber-950/20 ring-1 ring-amber-500/40"
+                  : "bg-neutral-950/70 border-neutral-800/80 hover:border-neutral-700 hover:bg-neutral-900/60"
               }`}
             >
-              <div>
-                <div className="flex items-start gap-3 mb-2.5">
-                  {/* Anchor Avatar Image with fallback */}
-                  <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-neutral-800 shrink-0 border border-neutral-700/60 shadow-sm">
-                    <img
-                      src={anchor.avatarUrl}
-                      alt={anchor.nameAmharic}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        // Fallback placeholder container if image fails
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-neutral-800 flex items-center justify-center text-amber-400 text-xs font-bold -z-10">
-                      {anchor.nameEnglish.charAt(0)}
-                    </div>
+              {/* Left: Avatar & Anchor Info */}
+              <div className="flex items-center gap-3.5 min-w-0">
+                {/* Portrait Avatar */}
+                <div className="relative w-13 h-13 rounded-xl overflow-hidden bg-neutral-800 shrink-0 border border-neutral-700/80 shadow-sm">
+                  <img
+                    src={anchor.avatarUrl}
+                    alt={anchor.nameAmharic}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-neutral-800 flex items-center justify-center text-amber-400 text-xs font-bold -z-10">
+                    {anchor.nameEnglish.charAt(0)}
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <h3 className="text-sm font-bold text-white truncate">
-                        {anchor.nameAmharic}
-                      </h3>
-                      {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                      )}
-                    </div>
-                    <p className="text-[11px] font-medium text-amber-400/90 truncate">
-                      {anchor.roleAmharic}
-                    </p>
-                    <p className="text-[10px] text-neutral-500 font-mono">
-                      {anchor.nameEnglish} · {anchor.gender === "male" ? "ወንድ" : "ሴት"}
-                    </p>
-                  </div>
+                  {isSelected && (
+                    <div className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-neutral-950" />
+                  )}
                 </div>
 
-                <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed mb-3">
-                  {anchor.description}
-                </p>
+                {/* Details */}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white truncate">
+                      {anchor.nameAmharic}
+                    </h3>
+                    <span className="text-[10px] font-mono text-neutral-400 hidden sm:inline">
+                      ({anchor.nameEnglish})
+                    </span>
+                    {isSelected && (
+                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                    )}
+                  </div>
+
+                  <p className="text-xs text-amber-300/90 font-medium truncate mt-0.5">
+                    {anchor.roleAmharic}
+                  </p>
+
+                  <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
+                    {anchor.description}
+                  </p>
+                </div>
               </div>
 
-              {/* Card Footer Action */}
-              <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-mono text-neutral-400">
-                  ቅላጼ፦ {anchor.defaultPitch < 1 ? "ጥልቅ (Deep)" : anchor.defaultPitch > 1 ? "ቀጭን (Crisp)" : "መካከለኛ"}
-                </span>
-
+              {/* Right: Audio Sample Preview Button */}
+              <div className="shrink-0">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onPreviewSample(anchor);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
                     isPreviewing
-                      ? "bg-amber-500 text-neutral-950 font-semibold"
-                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white"
+                      ? "bg-amber-500 text-neutral-950 shadow-amber-500/20"
+                      : "bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white border border-neutral-700/80"
                   }`}
-                  title="የድምፅ ናሙና አድምጥ"
+                  title="የጋዜጠኛውን ድምፅ አድምጥ"
                 >
-                  <Volume2 className="w-3 h-3" />
-                  <span>{isPreviewing ? "በማድመጥ ላይ..." : "ድምፁን ሞክር"}</span>
+                  {isPreviewing ? (
+                    <>
+                      <Square className="w-3 h-3 fill-current" />
+                      <span>በማድመጥ ላይ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                      <span>ድምፁን ሞክር</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -28,20 +28,25 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
   isPlaying,
 }) => {
   return (
-    <div className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-5">
+    <div className="bg-neutral-900/95 border border-neutral-800 rounded-xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-4">
+      {/* Console Header */}
       <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-amber-400" />
-          <span>የስቱዲዮ ድምፅ ቅንብር (Broadcast Audio Console)</span>
-        </h2>
-        <span className="text-[11px] font-mono text-neutral-400">
-          24kHz Studio Master
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Sliders className="w-3.5 h-3.5" />
+          </div>
+          <h2 className="text-sm sm:text-base font-bold text-white">
+            የስቱዲዮ ድምፅ ቅንብር (Audio Mixer)
+          </h2>
+        </div>
+        <span className="text-[11px] font-mono text-amber-400/80 bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+          Studio Master Console
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left Column: Voice Cadence & Pitch */}
-        <div className="space-y-4 bg-neutral-950/60 p-3.5 rounded-lg border border-neutral-800/80">
+        <div className="space-y-3.5 bg-neutral-950/70 p-3.5 rounded-xl border border-neutral-800/80">
           <h3 className="text-xs font-semibold text-amber-400/90 uppercase tracking-wider flex items-center gap-1.5">
             <Mic2 className="w-3.5 h-3.5" />
             <span>የአንባቢው የንግግር ስልት (Voice Tuning)</span>
@@ -51,7 +56,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
           <div>
             <div className="flex items-center justify-between text-xs text-neutral-300 mb-1.5">
               <span>የንባብ ፍጥነት (Speed / Tempo)</span>
-              <span className="font-mono text-amber-400">{settings.speechRate.toFixed(2)}x</span>
+              <span className="font-mono text-amber-400 font-bold">{settings.speechRate.toFixed(2)}x</span>
             </div>
             <input
               type="range"
@@ -62,25 +67,25 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               onChange={(e) => updateSettings({ speechRate: parseFloat(e.target.value) })}
               className="w-full accent-amber-500 cursor-pointer h-1.5 bg-neutral-800 rounded-lg"
             />
-            <div className="flex justify-between text-[10px] text-neutral-500 pt-1">
+            <div className="flex justify-between text-[10px] text-neutral-400 pt-1">
               <button
                 type="button"
                 onClick={() => updateSettings({ speechRate: 0.85 })}
-                className="hover:text-neutral-300"
+                className="hover:text-amber-300"
               >
                 የተረጋጋ (0.85x)
               </button>
               <button
                 type="button"
                 onClick={() => updateSettings({ speechRate: 0.98 })}
-                className="hover:text-amber-400 font-semibold"
+                className="hover:text-amber-300 font-semibold text-neutral-300"
               >
-                መደበኛ ዜና (1.0x)
+                መደበኛ (1.0x)
               </button>
               <button
                 type="button"
                 onClick={() => updateSettings({ speechRate: 1.15 })}
-                className="hover:text-neutral-300"
+                className="hover:text-amber-300"
               >
                 ሰበር ፈጣን (1.15x)
               </button>
@@ -91,8 +96,8 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
           <div>
             <div className="flex items-center justify-between text-xs text-neutral-300 mb-1.5">
               <span>የድምፅ ቅላጼ (Voice Pitch)</span>
-              <span className="font-mono text-amber-400">
-                {settings.speechPitch < 0.95 ? "ጥልቅ (Baritone)" : settings.speechPitch > 1.05 ? "ቀጭን (Higher)" : "መደበኛ (Standard)"}
+              <span className="font-mono text-amber-400 font-semibold">
+                {settings.speechPitch < 0.95 ? "ጥልቅ (Baritone)" : settings.speechPitch > 1.05 ? "ቀጭን (Crisp)" : "መደበኛ (Standard)"}
               </span>
             </div>
             <input
@@ -111,8 +116,8 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
             <div className="flex items-center gap-2">
               <BellRing className="w-3.5 h-3.5 text-red-500" />
               <div>
-                <p className="text-xs font-medium text-white">የመግቢያ ሰበር ዜና ጅንግል</p>
-                <p className="text-[10px] text-neutral-400">ከዜናው በፊት ድምቀታዊ ጅንግል ይጫወት</p>
+                <p className="text-xs font-semibold text-white">የመግቢያ ሰበር ዜና ጅንግል</p>
+                <p className="text-[10px] text-neutral-400">ከዜናው መጀመሪያ ድምቀታዊ ጅንግል ይጫወት</p>
               </div>
             </div>
 
@@ -120,7 +125,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               <button
                 type="button"
                 onClick={onPreviewStinger}
-                className="px-2 py-0.5 text-[10px] bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700"
+                className="px-2 py-1 text-[10px] bg-neutral-900 hover:bg-neutral-800 text-neutral-300 rounded border border-neutral-700/80"
               >
                 ጅንግሉን ሞክር
               </button>
@@ -134,22 +139,22 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Music Bed & Master Output */}
-        <div className="space-y-4 bg-neutral-950/60 p-3.5 rounded-lg border border-neutral-800/80">
+        {/* Right Column: Music Bed & Auto-Ducking */}
+        <div className="space-y-3.5 bg-neutral-950/70 p-3.5 rounded-xl border border-neutral-800/80">
           <h3 className="text-xs font-semibold text-amber-400/90 uppercase tracking-wider flex items-center gap-1.5">
             <Music className="w-3.5 h-3.5" />
             <span>የጀርባ ዜና ሙዚቃ (News Music Bed)</span>
           </h3>
 
           {/* Music Selection Options */}
-          <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
             {MUSIC_OPTIONS.map((opt) => (
               <label
                 key={opt.id}
-                className={`flex items-center justify-between p-2 rounded-md border text-xs cursor-pointer transition-colors ${
+                className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
                   settings.musicBed === opt.id
-                    ? "bg-amber-500/10 border-amber-500/50 text-white"
-                    : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-neutral-200"
+                    ? "bg-amber-500/15 border-amber-500/60 text-white"
+                    : "bg-neutral-900/80 border-neutral-800/80 text-neutral-400 hover:text-neutral-200"
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
@@ -180,9 +185,9 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
                   ) : (
                     <Volume2 className="w-3.5 h-3.5 text-amber-400" />
                   )}
-                  <span>የሙዚቃው ድምፅ (Music Volume)</span>
+                  <span>የሙዚቃው ድምፅ</span>
                 </span>
-                <span className="font-mono text-amber-400">
+                <span className="font-mono text-amber-400 font-bold">
                   {Math.round(settings.musicVolume * 100)}%
                 </span>
               </div>
@@ -212,7 +217,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
         </div>
       </div>
 
-      {/* Export / Download Master Mix Strip */}
+      {/* Export Audio Strip */}
       <div className="pt-2 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-neutral-400">
           <Disc3 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -225,7 +230,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
           type="button"
           onClick={onExportMixedAudio}
           disabled={isExporting}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-emerald-950/40 transition-colors whitespace-nowrap disabled:opacity-50"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-md shadow-emerald-950/40 transition-colors whitespace-nowrap disabled:opacity-50"
         >
           <Download className="w-3.5 h-3.5" />
           <span>{isExporting ? "በማቀነባበር ላይ..." : "ድምፁን አውርድ (.WAV Export)"}</span>

@@ -420,61 +420,59 @@ export default function App() {
 
         {/* Hero Studio Banner */}
         <div className="relative rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 shadow-2xl">
-          <div className="relative h-48 sm:h-56 md:h-64 w-full overflow-hidden">
+          <div className="relative h-44 sm:h-52 md:h-56 w-full overflow-hidden">
             <img
-              src="/src/assets/images/fana_newsroom_studio_1792062308296.jpg"
+              src="/images/studio_hero.jpg"
               alt="Fana Newsroom Studio Desk"
-              referrerPolicy="no-referrer"
               className="w-full h-full object-cover object-center brightness-75 scale-100 hover:scale-105 transition-transform duration-700"
             />
             {/* Scrim Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/70 to-transparent" />
 
-            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-              <div className="space-y-1.5 max-w-2xl">
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div className="space-y-1 max-w-2xl">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                    LIVE BROADCAST STUDIO
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    FBC NEWSROOM STUDIO
                   </span>
-                  <span className="text-xs text-neutral-300 font-mono">
+                  <span className="text-xs text-neutral-400 font-mono">
                     ፋና ብሮድካስቲንግ ኮርፖሬት
                   </span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white text-balance">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white text-balance">
                   የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ስቱዲዮ
                 </h1>
-                <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-xl">
+                <p className="text-xs text-neutral-300 leading-relaxed max-w-xl">
                   ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በፋና ጋዜጠኞች ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።
                 </p>
               </div>
 
-              {/* Quick Broadcast Button */}
-              <div className="shrink-0">
-                {isPlaying ? (
-                  <button
-                    onClick={handleStop}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xl shadow-red-950/50 transition-all"
-                  >
-                    <Square className="w-4 h-4 fill-current" />
-                    <span>ስርጭት አቁም</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleBroadcast}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-amber-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-bold text-xs shadow-xl shadow-amber-950/50 transition-all disabled:opacity-50"
-                  >
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>ዜናውን አንብብ (Start News)</span>
-                  </button>
-                )}
+              {/* Utility Shortcuts */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsTeleprompterOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-cyan-300 border border-cyan-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                >
+                  <Tv className="w-3.5 h-3.5" />
+                  <span>ቴሌፕሮምፕተር</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportAudio}
+                  disabled={isExporting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>ድምፅ አውርድ</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Real-time Visualizer & VU Meter */}
+        {/* Real-time Visualizer & Master Telemetry Console */}
         <AudioVisualizer
           isPlaying={isPlaying}
           anchorName={selectedAnchor.nameAmharic}
@@ -490,23 +488,11 @@ export default function App() {
               : "ድምፅ ብቻ"
           }
           elapsedSeconds={elapsedSeconds}
+          statusMessage={statusMessage}
         />
 
-        {/* Status ticker */}
-        <div className="flex items-center justify-between text-xs bg-neutral-900/60 px-4 py-2 rounded-lg border border-neutral-800 text-neutral-400">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span>ሁኔታ፦ <strong className="text-neutral-200">{statusMessage}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-4 text-[11px] font-mono">
-            <span className="hidden sm:inline">የድምፅ ጥራት፦ 24kHz Studio Audio</span>
-            <span>የተመረጠ ድምፅ፦ {selectedAnchor.nameAmharic} ({selectedAnchor.nameEnglish})</span>
-          </div>
-        </div>
-
         {/* Two-Column Studio Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Main Column: Script Editor & Controls (7 Cols) */}
           <div className="lg:col-span-7 space-y-6">
             <NewsScriptEditor
