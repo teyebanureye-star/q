@@ -9,6 +9,7 @@ export interface VoiceAnchor {
   avatarUrl: string;
   description: string;
   sampleText: string;
+  sampleAudioUrl?: string;
   defaultPitch: number; // 0.8 to 1.2
   defaultRate: number;  // 0.8 to 1.2
 }

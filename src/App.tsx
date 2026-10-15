@@ -162,7 +162,14 @@ export default function App() {
     studioAudio.init();
 
     try {
-      // Try neural TTS first
+      // 1. If anchor has pre-generated authentic broadcast audio file, play it directly!
+      if (anchor.sampleAudioUrl) {
+        await studioAudio.playAudioUrl(anchor.sampleAudioUrl);
+        setPreviewingAnchorId(null);
+        return;
+      }
+
+      // 2. Otherwise request neural TTS
       const res = await fetch("/api/tts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,17 +189,14 @@ export default function App() {
         }
       }
 
-      // Fallback to Web Speech
-      await studioAudio.speakWithWebSpeech(anchor.sampleText, {
-        pitch: anchor.defaultPitch,
-        rate: anchor.defaultRate,
-        voiceGender: anchor.gender,
+      setNotification({
+        type: "warning",
+        text: `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። በ Vercel ላይ GEMINI_API_KEY መግባቱን ያረጋግጡ።`,
       });
     } catch {
-      await studioAudio.speakWithWebSpeech(anchor.sampleText, {
-        pitch: anchor.defaultPitch,
-        rate: anchor.defaultRate,
-        voiceGender: anchor.gender,
+      setNotification({
+        type: "warning",
+        text: `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። እባክዎ የ Vercel Environment Variables ያረጋግጡ።`,
       });
     } finally {
       setPreviewingAnchorId(null);
@@ -235,10 +239,18 @@ export default function App() {
         studioAudio.startMusicBed(settings.musicBed);
       }
 
-      // 3. Request high-fidelity Gemini 3.8 Neural Audio from server
+      // 3. Check if this is one of our anchor's sample scripts with pre-rendered studio audio
+      if (selectedAnchor.sampleAudioUrl && (spokenText.includes(selectedAnchor.nameAmharic) || rawText === selectedAnchor.sampleText)) {
+        setStatusMessage(`🎙️ በ${selectedAnchor.nameAmharic} ስቱዲዮ ድምፅ በመነበብ ላይ ነው...`);
+        setIsLoading(false);
+        setIsPlaying(true);
+        await studioAudio.playAudioUrl(selectedAnchor.sampleAudioUrl);
+        finishBroadcast();
+        return;
+      }
+
+      // 4. Request high-fidelity Gemini 3.8 Neural Audio from server
       setStatusMessage(`🎙️ በ${selectedAnchor.nameAmharic} ድምፅ በመነበብ ላይ ነው...`);
-      setIsLoading(false);
-      setIsPlaying(true);
 
       const ttsResponse = await fetch("/api/tts/generate", {
         method: "POST",
@@ -253,6 +265,8 @@ export default function App() {
       if (ttsResponse.ok) {
         const ttsData = await ttsResponse.json();
         if (ttsData.audioBase64) {
+          setIsLoading(false);
+          setIsPlaying(true);
           // Play the 24kHz studio master WAV
           await studioAudio.playWavAudio(ttsData.audioBase64);
           finishBroadcast();
@@ -260,31 +274,42 @@ export default function App() {
         }
       }
 
-      // Fallback: Web Speech API synthesis
-      setNotification({
-        type: "info",
-        text: `በቀጥታ ስቱዲዮ ንባብ ሁነታ በ${selectedAnchor.nameAmharic} ስልት እየተነበበ ነው`,
-      });
+      // If the response failed
+      const errData = await ttsResponse.json().catch(() => ({}));
+      setIsLoading(false);
+      studioAudio.stopMusicBed();
 
-      await studioAudio.speakWithWebSpeech(spokenText, {
-        pitch: settings.speechPitch,
-        rate: settings.speechRate,
-        voiceGender: selectedAnchor.gender,
-      });
-
-      finishBroadcast();
-    } catch (err: any) {
-      console.warn("TTS Error, running fallback speech:", err);
-      try {
-        await studioAudio.speakWithWebSpeech(spokenText, {
-          pitch: settings.speechPitch,
-          rate: settings.speechRate,
-          voiceGender: selectedAnchor.gender,
+      if (errData?.missingApiKey || ttsResponse.status === 401) {
+        setNotification({
+          type: "warning",
+          text: "⚠️ በ Vercel ላይ GEMINI_API_KEY አልተገኘም! እባክዎ Vercel Settings > Environment Variables ውስጥ GEMINI_API_KEY ያስገቡ። ወደ ሮቦት ድምፅ እንዳይቀየር ቆሟል።",
         });
-      } catch (e) {
-        console.error(e);
+        setStatusMessage("GEMINI_API_KEY አልተገኘም (Vercel Settings ያረጋግጡ)");
+      } else if (errData?.isQuota || ttsResponse.status === 429) {
+        setNotification({
+          type: "warning",
+          text: "⚠️ የ Gemini API ዕለታዊ የነፃ ኮታ ገደብ ደርሷል። እባክዎ ጥቂት ደቂቃዎች ቆይተው እንደገና ይሞክሩ።",
+        });
+        setStatusMessage("የኤፒአይ ኮታ ገደብ ደርሷል (እባክዎ ቆይተው ይሞክሩ)");
+      } else {
+        setNotification({
+          type: "warning",
+          text: `⚠️ የድምፅ ኤፒአይ ምላሽ አልሰጠም (${errData?.error || "Error"})። የሮቦት ድምፅ እንዳይገባ ስርጭቱ ተቋርጧል።`,
+        });
+        setStatusMessage("ድምፅ ማመንጨት አልተቻለም");
       }
-      finishBroadcast();
+
+      setIsPlaying(false);
+    } catch (err: any) {
+      console.error("TTS fetch error:", err);
+      setIsLoading(false);
+      setIsPlaying(false);
+      studioAudio.stopMusicBed();
+      setNotification({
+        type: "warning",
+        text: "⚠️ የስቱዲዮ ድምፅ ሰርቨሩ አልተገናኘም። በ Vercel ላይ GEMINI_API_KEY መግባቱን ያረጋግጡ።",
+      });
+      setStatusMessage("የግንኙነት ችግር አጋጥሟል");
     }
   };
 

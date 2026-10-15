@@ -50,35 +50,67 @@ app.post("/api/tts/generate", async (req, res) => {
       });
     }
 
+    let audioBase64: string | undefined;
+
     // Call Gemini 3.8 Flash Lite TTS with speech configuration
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash-lite-tts",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: cleanText,
-              speechMetadata: {
-                style: style,
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.8-flash-lite-tts",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: cleanText,
+                speechMetadata: {
+                  style: style,
+                },
               },
-            },
-          ],
-        },
-      ],
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: voice,
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: voice,
+              },
             },
           },
         },
-      },
-    });
-
-    const audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      });
+      audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    } catch (liteErr: any) {
+      console.warn("Flash lite TTS failed, retrying with gemini-3.8-flash-tts:", liteErr?.message);
+      const fallbackResponse = await ai.models.generateContent({
+        model: "gemini-3.8-flash-tts",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: cleanText,
+                speechMetadata: {
+                  style: style,
+                },
+              },
+            ],
+          },
+        ],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: voice,
+              },
+            },
+          },
+        },
+      });
+      audioBase64 = fallbackResponse.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    }
 
     if (!audioBase64) {
       return res.status(500).json({ error: "የድምፅ ቅጂ ማመንጨት አልተቻለም (Could not extract audio data)" });

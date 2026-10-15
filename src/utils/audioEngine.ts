@@ -415,6 +415,47 @@ class StudioAudioEngine {
   }
 
   /**
+   * Play pre-recorded/cached WAV audio from URL through the studio mixer (with ducking and visualizer)
+   */
+  public async playAudioUrl(url: string): Promise<void> {
+    this.stopVoice();
+    this.init();
+
+    if (!this.ctx || !this.voiceGain) return;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Audio fetch failed");
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+
+      this.currentVoiceSource = this.ctx.createBufferSource();
+      this.currentVoiceSource.buffer = audioBuffer;
+      this.currentVoiceSource.connect(this.voiceGain);
+
+      this.duckMusic(true);
+
+      return new Promise((resolve) => {
+        if (!this.currentVoiceSource) {
+          resolve();
+          return;
+        }
+
+        this.currentVoiceSource.onended = () => {
+          this.duckMusic(false);
+          this.currentVoiceSource = null;
+          resolve();
+        };
+
+        this.currentVoiceSource.start(0);
+      });
+    } catch (err) {
+      this.duckMusic(false);
+      console.error("Error playing audio url:", err);
+    }
+  }
+
+  /**
    * Stop any current speech or audio
    */
   public stopVoice() {

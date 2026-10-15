@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
+      "source": "/api/tts/generate",
+      "destination": "/api/tts/generate"
+    },
+    {
+      "source": "/api/news/format",
+      "destination": "/api/news/format"
+    },
+    {
+      "source": "/api/download-zip",
+      "destination": "/api/download-zip"
     }
   ]
 }
