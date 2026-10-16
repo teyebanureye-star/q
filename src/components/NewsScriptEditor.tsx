@@ -8,6 +8,7 @@ import {
   Copy,
   Check,
   Flame,
+  BookOpen,
 } from "lucide-react";
 import { NewsScriptPreset } from "../types/studio";
 
@@ -21,6 +22,7 @@ interface NewsScriptEditorProps {
   onNormalizeAbbreviations: () => void;
   onOpenAiPolish: () => void;
   onOpenTeleprompter: () => void;
+  onOpenDictionary: () => void;
 }
 
 export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
@@ -33,6 +35,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onNormalizeAbbreviations,
   onOpenAiPolish,
   onOpenTeleprompter,
+  onOpenDictionary,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -105,15 +108,26 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
 
           {/* Action Tools Cluster */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Abbreviation Normalizer */}
+            {/* Abbreviation & Phonetics Normalizer */}
             <button
               type="button"
               onClick={onNormalizeAbbreviations}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/25 font-medium shadow-sm"
-              title="አጽህሮተ-ቃላትን (ጠ/ሚ፣ ዶ/ር፣ ብር) ወደ ሙሉ አማርኛ ቃል ቀይር"
+              title="አጽህሮተ-ቃላት (ጠ/ሚ)፣ ቁጥሮች እና ሥርዓተ-ነጥቦችን ለጋዜጠኛ ንባብ በሚመች ሁኔታ ያስተካክላል"
             >
               <Wand2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>አጽህሮተ-ቃል አስተካክል</span>
+              <span>አነባበብና አጽህሮተ-ቃል አስተካክል</span>
+            </button>
+
+            {/* Custom Pronunciation Dictionary */}
+            <button
+              type="button"
+              onClick={onOpenDictionary}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors border border-neutral-700/80 font-medium shadow-sm"
+              title="የቃላት አነባበብ መዝገበ-ቃላት (የተሳሳቱ አነባበቦችን ለማረም)"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>መዝገበ-ቃላት (Dictionary)</span>
             </button>
 
             {/* AI News Polisher */}

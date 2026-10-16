@@ -60,6 +60,9 @@ export default async function handler(req: any, res: any) {
 
     let audioBase64: string | undefined;
 
+    const amharicPhoneticDirective = "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation.";
+    const fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
+
     // Try primary model (gemini-3.8-flash-lite-tts)
     try {
       const response = await ai.models.generateContent({
@@ -71,7 +74,7 @@ export default async function handler(req: any, res: any) {
               {
                 text: cleanText,
                 speechMetadata: {
-                  style: style,
+                  style: fullStyle,
                 },
               },
             ],
@@ -102,7 +105,7 @@ export default async function handler(req: any, res: any) {
               {
                 text: cleanText,
                 speechMetadata: {
-                  style: style,
+                  style: fullStyle,
                 },
               },
             ],

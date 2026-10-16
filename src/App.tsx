@@ -19,10 +19,15 @@ import {
   Headphones,
   Flame,
   Volume2,
+  BookOpen,
 } from "lucide-react";
-import { VoiceAnchor, StudioSettings, NewsScriptPreset } from "./types/studio";
+import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
-import { normalizeAmharicForSpeech, calculateAmharicDuration } from "./utils/amharicNormalizer";
+import {
+  normalizeAmharicForSpeech,
+  calculateAmharicDuration,
+  getStoredDictionary,
+} from "./utils/amharicNormalizer";
 import { studioAudio } from "./utils/audioEngine";
 import { StudioHeader } from "./components/StudioHeader";
 import { AudioVisualizer } from "./components/AudioVisualizer";
@@ -32,6 +37,9 @@ import { StudioControls } from "./components/StudioControls";
 import { TeleprompterModal } from "./components/TeleprompterModal";
 import { AiPolishModal } from "./components/AiPolishModal";
 import { ExportModal } from "./components/ExportModal";
+import { DictionaryModal } from "./components/DictionaryModal";
+import { AuthModal } from "./components/AuthModal";
+import { AdminModal } from "./components/AdminModal";
 
 export default function App() {
   // Navigation Section
@@ -63,6 +71,12 @@ export default function App() {
   const [isTeleprompterOpen, setIsTeleprompterOpen] = useState<boolean>(false);
   const [isAiPolishOpen, setIsAiPolishOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isDictionaryOpen, setIsDictionaryOpen] = useState<boolean>(false);
+  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+
+  // Pronunciation Dictionary State
+  const [dictionary, setDictionary] = useState<DictionaryEntry[]>(() => getStoredDictionary());
 
   // Export State
   const [exportedAudioUrl, setExportedAudioUrl] = useState<string | null>(null);
@@ -114,14 +128,14 @@ export default function App() {
     });
   };
 
-  // Normalize Abbreviations
+  // Normalize Abbreviations & Dictionary Mappings
   const handleNormalize = () => {
     if (!script.trim()) return;
-    const normalized = normalizeAmharicForSpeech(script);
+    const normalized = normalizeAmharicForSpeech(script, dictionary);
     setScript(normalized);
     setNotification({
       type: "success",
-      text: "አጽህሮተ-ቃላት ወደ ሙሉ አማርኛ ቃል ተቀይረዋል!",
+      text: "አጽህሮተ-ቃላት፣ የቃላት አነባበብ እና ቁጥሮች ለንባብ በሚመች መልኩ ተስተካክለዋል!",
     });
   };
 
@@ -221,8 +235,8 @@ export default function App() {
     studioAudio.init();
     studioAudio.setMusicVolume(settings.musicVolume);
 
-    // Phonetically clean script
-    const spokenText = normalizeAmharicForSpeech(rawText);
+    // Phonetically clean script with custom pronunciation dictionary
+    const spokenText = normalizeAmharicForSpeech(rawText, dictionary);
 
     try {
       // Start recording master mix for download export
@@ -398,6 +412,9 @@ export default function App() {
         onStopClick={handleStop}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        onOpenDictionary={() => setIsDictionaryOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       {/* Main Container */}
@@ -449,7 +466,16 @@ export default function App() {
               </div>
 
               {/* Utility Shortcuts */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setIsDictionaryOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                  title="የቃላት አነባበብ መዝገበ-ቃላት"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>መዝገበ-ቃላት</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsTeleprompterOpen(true)}
@@ -505,6 +531,7 @@ export default function App() {
               onNormalizeAbbreviations={handleNormalize}
               onOpenAiPolish={() => setIsAiPolishOpen(true)}
               onOpenTeleprompter={() => setIsTeleprompterOpen(true)}
+              onOpenDictionary={() => setIsDictionaryOpen(true)}
             />
 
             <StudioControls
@@ -599,6 +626,31 @@ export default function App() {
         audioUrl={exportedAudioUrl}
         script={script}
         anchorName={selectedAnchor.nameAmharic}
+      />
+
+      <DictionaryModal
+        isOpen={isDictionaryOpen}
+        onClose={() => setIsDictionaryOpen(false)}
+        dictionary={dictionary}
+        setDictionary={setDictionary}
+        onPreviewWord={(word) => {
+          studioAudio.init();
+          studioAudio.speakWithWebSpeech(word, {
+            pitch: selectedAnchor.defaultPitch,
+            rate: selectedAnchor.defaultRate,
+            voiceGender: selectedAnchor.gender,
+          });
+        }}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+      />
+
+      <AdminModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
       />
     </div>
   );

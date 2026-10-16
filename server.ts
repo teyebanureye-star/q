@@ -55,6 +55,9 @@ app.post("/api/tts/generate", async (req, res) => {
 
     let audioBase64: string | undefined;
 
+    const amharicPhoneticDirective = "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation.";
+    const fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
+
     // Call Gemini 3.8 Flash Lite TTS with speech configuration
     try {
       const response = await ai.models.generateContent({
@@ -66,7 +69,7 @@ app.post("/api/tts/generate", async (req, res) => {
               {
                 text: cleanText,
                 speechMetadata: {
-                  style: style,
+                  style: fullStyle,
                 },
               },
             ],
@@ -95,7 +98,7 @@ app.post("/api/tts/generate", async (req, res) => {
               {
                 text: cleanText,
                 speechMetadata: {
-                  style: style,
+                  style: fullStyle,
                 },
               },
             ],
@@ -170,6 +173,8 @@ ${rawText}
 2. አጽህሮተ-ቃላትን ወደ ሙሉ ቃል ቀይሩ (ምሳሌ፦ "ጠ/ሚ" -> "ጠቅላይ ሚኒስትር"፣ "ዶ/ር" -> "ዶክተር"፣ "ኪ.ሜ" -> "ኪሎሜትር"፣ "ብር" -> "የኢትዮጵያ ብር") የድምፅ አንባቢው በቀላሉ እንዲያነበው።
 3. አንባቢው የት ላይ ማቆም እንዳለበት የሚያሳዩ ሥርዓተ-ነጥቦችን (፤ ፣ ።) በትክክል ተጠቀሙ።
 4. የፋና ዜና የተለመዱ መግቢያ እና መደምደሚያዎችን አካትቱ (ለምሳሌ፦ "ሰበር ዜና፤ ... ፋና ዜና አዲስ አበባ")።
+5. ቁጥሮችን በሙሉ ወደ ተነባቢ አማርኛ ቃላት ቀይሩ (ምሳሌ፦ "2016" -> "ሁለት ሺህ አስራ ስድስት"፣ "50%" -> "ሃምሳ በመቶ") የድምፅ አንባቢው በእንግሊዝኛ ወይም በሮቦት አነባበብ እንዳያነበው።
+6. የቃላት አነባበብ እንዳይዛባ እንደ "ሰበር ዜና፤" ያሉትን ቃላት በግልጽ ሥርዓተ-ነጥብ አስቀምጡ።
 
 መልስዎን በሚከተለው JSON ቅርጸት ብቻ ይመልሱ:
 {

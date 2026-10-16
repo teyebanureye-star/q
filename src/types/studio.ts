@@ -36,3 +36,12 @@ export interface NewsScriptPreset {
   musicBed: MusicBedType;
   durationEstimateSec: number;
 }
+
+export interface DictionaryEntry {
+  id: string;
+  originalWord: string;
+  phoneticReplacement: string;
+  notes?: string;
+  enabled: boolean;
+  isDefault?: boolean;
+}

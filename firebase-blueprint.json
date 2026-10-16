@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile document storing role and account metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "editor", "user"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin role lookup document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "SavedScript": {
+      "title": "SavedScript",
+      "description": "User saved broadcast news script in cloud",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "headline": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 10000 },
+        "category": { "type": "string", "maxLength": 50 },
+        "anchorId": { "type": "string", "maxLength": 50 },
+        "musicBed": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "headline", "content"]
+    },
+    "DictionaryItem": {
+      "title": "DictionaryItem",
+      "description": "User custom phonetic pronunciation mapping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "originalWord": { "type": "string", "maxLength": 100 },
+        "phoneticReplacement": { "type": "string", "maxLength": 200 },
+        "notes": { "type": "string", "maxLength": 300 },
+        "enabled": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "originalWord", "phoneticReplacement", "enabled"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account and profile data"
+    },
+    "/admins/{userId}": {
+      "schema": "AdminRecord",
+      "description": "Authoritative admin permissions verification document"
+    },
+    "/savedScripts/{scriptId}": {
+      "schema": "SavedScript",
+      "description": "Cloud saved broadcast news scripts created by users"
+    },
+    "/users/{userId}/dictionary/{entryId}": {
+      "schema": "DictionaryItem",
+      "description": "Per-user customized pronunciation dictionary entries"
+    }
+  }
+}
