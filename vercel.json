@@ -7,6 +7,10 @@
     {
       "source": "/api/news/format",
       "destination": "/api/news/format"
+    },
+    {
+      "source": "/api/news/headlines",
+      "destination": "/api/news/headlines"
     }
   ]
 }

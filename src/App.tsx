@@ -40,6 +40,7 @@ import { ExportModal } from "./components/ExportModal";
 import { DictionaryModal } from "./components/DictionaryModal";
 import { AuthModal } from "./components/AuthModal";
 import { AdminModal } from "./components/AdminModal";
+import { HeadlineGeneratorModal } from "./components/HeadlineGeneratorModal";
 
 export default function App() {
   // Navigation Section
@@ -74,6 +75,7 @@ export default function App() {
   const [isDictionaryOpen, setIsDictionaryOpen] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isHeadlineGeneratorOpen, setIsHeadlineGeneratorOpen] = useState<boolean>(false);
 
   // Pronunciation Dictionary State
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>(() => getStoredDictionary());
@@ -136,6 +138,19 @@ export default function App() {
     setNotification({
       type: "success",
       text: "አጽህሮተ-ቃላት፣ የቃላት አነባበብ እና ቁጥሮች ለንባብ በሚመች መልኩ ተስተካክለዋል!",
+    });
+  };
+
+  // Apply AI Generated Headline
+  const handleApplyHeadline = (selectedHeadline: string) => {
+    if (!script.trim()) {
+      setScript(`${selectedHeadline}\n\nየዝርዝር መረጃው እዚህ ይቀጥላል...`);
+    } else {
+      setScript(`${selectedHeadline}\n\n${script.trim()}`);
+    }
+    setNotification({
+      type: "success",
+      text: "አዲሱ የዜና ርዕስ በስክሪፕቱ ውስጥ ተተክቷል!",
     });
   };
 
@@ -469,6 +484,15 @@ export default function App() {
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 <button
                   type="button"
+                  onClick={() => setIsHeadlineGeneratorOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                  title="በርዕሰ ጉዳይ ሳቢ የዜና ርዕስ በኤአይ አመንጭ"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>ርዕስ አመንጭ</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setIsDictionaryOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
                   title="የቃላት አነባበብ መዝገበ-ቃላት"
@@ -532,6 +556,7 @@ export default function App() {
               onOpenAiPolish={() => setIsAiPolishOpen(true)}
               onOpenTeleprompter={() => setIsTeleprompterOpen(true)}
               onOpenDictionary={() => setIsDictionaryOpen(true)}
+              onOpenHeadlineGenerator={() => setIsHeadlineGeneratorOpen(true)}
             />
 
             <StudioControls
@@ -651,6 +676,12 @@ export default function App() {
       <AdminModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+      />
+
+      <HeadlineGeneratorModal
+        isOpen={isHeadlineGeneratorOpen}
+        onClose={() => setIsHeadlineGeneratorOpen(false)}
+        onApplyHeadline={handleApplyHeadline}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   Check,
   Flame,
   BookOpen,
+  Heading,
 } from "lucide-react";
 import { NewsScriptPreset } from "../types/studio";
 
@@ -23,6 +24,7 @@ interface NewsScriptEditorProps {
   onOpenAiPolish: () => void;
   onOpenTeleprompter: () => void;
   onOpenDictionary: () => void;
+  onOpenHeadlineGenerator: () => void;
 }
 
 export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
@@ -36,6 +38,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenAiPolish,
   onOpenTeleprompter,
   onOpenDictionary,
+  onOpenHeadlineGenerator,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -139,6 +142,17 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>በፋና ስልት አሳምር</span>
+            </button>
+
+            {/* AI Headline Generator */}
+            <button
+              type="button"
+              onClick={onOpenHeadlineGenerator}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-amber-500/20 to-red-500/20 hover:from-amber-500/30 hover:to-red-500/30 text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/40 font-semibold shadow-sm"
+              title="በርዕሰ ጉዳይ ሳቢ የዜና ርዕስ በኤአይ አመንጭ"
+            >
+              <Heading className="w-3.5 h-3.5 text-amber-400" />
+              <span>ርዕስ አመንጭ</span>
             </button>
 
             {/* Fullscreen Teleprompter */}
