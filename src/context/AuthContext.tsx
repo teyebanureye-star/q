@@ -114,40 +114,95 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithEmail = async (email: string, pass: string) => {
-    const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
-    await syncProfile(cred.user);
+    const cleanEmail = email.trim();
+    const isUserAdmin = cleanEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      await syncProfile(cred.user);
+    } catch (err: any) {
+      // If admin account doesn't exist yet on newly provisioned Firebase project, auto-create it!
+      if (
+        isUserAdmin &&
+        (err?.code === "auth/invalid-credential" ||
+          err?.code === "auth/user-not-found" ||
+          err?.message?.includes("invalid-credential"))
+      ) {
+        try {
+          const newCred = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+          const userDocRef = doc(db, "users", newCred.user.uid);
+          const adminProfile: UserProfile = {
+            id: newCred.user.uid,
+            email: ADMIN_EMAIL,
+            displayName: "ዋና አድሚን (Worku Mesafint)",
+            role: "admin",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          try {
+            await setDoc(userDocRef, adminProfile);
+            await setDoc(doc(db, "admins", newCred.user.uid), {
+              id: newCred.user.uid,
+              email: ADMIN_EMAIL,
+              role: "admin",
+              createdAt: new Date().toISOString(),
+            });
+          } catch {
+            // Ignore if rules restrict
+          }
+          setProfile(adminProfile);
+          setIsAdmin(true);
+          return;
+        } catch (createErr) {
+          console.warn("Admin auto-provision note:", createErr);
+        }
+      }
+      throw err;
+    }
   };
 
   const signUpWithEmail = async (email: string, pass: string, name?: string) => {
-    const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
-    const isUserAdmin = email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
-    const userDocRef = doc(db, "users", cred.user.uid);
-    const newProfile: UserProfile = {
-      id: cred.user.uid,
-      email: email.trim(),
-      displayName: name?.trim() || email.split("@")[0],
-      role: isUserAdmin ? "admin" : "user",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const cleanEmail = email.trim();
+    const isUserAdmin = cleanEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     try {
-      await setDoc(userDocRef, newProfile);
-      if (isUserAdmin) {
-        await setDoc(doc(db, "admins", cred.user.uid), {
-          id: cred.user.uid,
-          email: ADMIN_EMAIL,
-          role: "admin",
-          createdAt: new Date().toISOString(),
-        });
-      }
-    } catch (e) {
-      console.warn("Profile doc save error:", e);
-    }
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
 
-    setProfile(newProfile);
-    setIsAdmin(isUserAdmin);
+      const userDocRef = doc(db, "users", cred.user.uid);
+      const newProfile: UserProfile = {
+        id: cred.user.uid,
+        email: cleanEmail,
+        displayName: name?.trim() || cleanEmail.split("@")[0],
+        role: isUserAdmin ? "admin" : "user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      try {
+        await setDoc(userDocRef, newProfile);
+        if (isUserAdmin) {
+          await setDoc(doc(db, "admins", cred.user.uid), {
+            id: cred.user.uid,
+            email: ADMIN_EMAIL,
+            role: "admin",
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.warn("Profile doc save error:", e);
+      }
+
+      setProfile(newProfile);
+      setIsAdmin(isUserAdmin);
+    } catch (err: any) {
+      if (err?.code === "auth/email-already-in-use") {
+        // Attempt sign in with the provided password
+        const cred = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+        await syncProfile(cred.user);
+        return;
+      }
+      throw err;
+    }
   };
 
   const signInWithGoogle = async () => {
@@ -161,10 +216,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
-    setProfile(null);
-    setIsAdmin(false);
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn("SignOut warning:", e);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+    }
   };
 
   return (

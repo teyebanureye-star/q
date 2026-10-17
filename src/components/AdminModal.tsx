@@ -11,6 +11,7 @@ import {
   FileText,
   Activity,
   Lock,
+  LogOut,
 } from "lucide-react";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -23,7 +24,7 @@ interface AdminModalProps {
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, logout } = useAuth();
   const [userCount, setUserCount] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -148,7 +149,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-neutral-800 bg-neutral-950/70 flex justify-end">
+        <div className="p-4 border-t border-neutral-800 bg-neutral-950/70 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={async () => {
+              await logout();
+              onClose();
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-700/80 text-red-200 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+          >
+            <LogOut className="w-3.5 h-3.5 text-red-400" />
+            <span>ከአድሚን ውጣ (Sign Out)</span>
+          </button>
+
           <button
             type="button"
             onClick={onClose}

@@ -10,6 +10,14 @@ import {
   Flame,
   BookOpen,
   Heading,
+  Play,
+  Square,
+  Loader2,
+  Radio,
+  Mic,
+  Image as ImageIcon,
+  MessageSquare,
+  Camera,
 } from "lucide-react";
 import { NewsScriptPreset } from "../types/studio";
 
@@ -25,6 +33,14 @@ interface NewsScriptEditorProps {
   onOpenTeleprompter: () => void;
   onOpenDictionary: () => void;
   onOpenHeadlineGenerator: () => void;
+  isPlaying?: boolean;
+  isLoading?: boolean;
+  onPlayClick?: () => void;
+  onStopClick?: () => void;
+  onOpenDictation?: () => void;
+  onOpenChat?: () => void;
+  onOpenGraphics?: () => void;
+  onOpen3DStudio?: () => void;
 }
 
 export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
@@ -39,6 +55,14 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenTeleprompter,
   onOpenDictionary,
   onOpenHeadlineGenerator,
+  isPlaying,
+  isLoading,
+  onPlayClick,
+  onStopClick,
+  onOpenDictation,
+  onOpenChat,
+  onOpenGraphics,
+  onOpen3DStudio,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -166,6 +190,50 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
               <span>ቴሌፕሮምፕተር</span>
             </button>
 
+            {/* Voice Dictation (Speech-to-Text) */}
+            <button
+              type="button"
+              onClick={onOpenDictation}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-red-300 hover:text-red-200 transition-colors border border-red-800/60 font-medium shadow-sm"
+              title="በማይክሮፎን ተናግረው ዜናውን በጽሑፍ ያዘጋጁ (Speech-to-Text)"
+            >
+              <Mic className="w-3.5 h-3.5 text-red-400" />
+              <span>ድምፅ ተናገር</span>
+            </button>
+
+            {/* AI Newsroom Assistant Chat */}
+            <button
+              type="button"
+              onClick={onOpenChat}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-emerald-300 hover:text-emerald-200 transition-colors border border-emerald-800/60 font-medium shadow-sm"
+              title="የፋና ዜና ክፍል AI ረዳት ጋር ተወያዩ"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI ረዳት</span>
+            </button>
+
+            {/* AI News Graphics */}
+            <button
+              type="button"
+              onClick={onOpenGraphics}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-violet-300 hover:text-violet-200 transition-colors border border-violet-800/60 font-medium shadow-sm"
+              title="ለዜናው የሚሆን 16:9 ምስልና ሽፋን (Thumbnail) አመንጭ"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-violet-400" />
+              <span>የዜና ምስል</span>
+            </button>
+
+            {/* 3D Virtual Studio */}
+            <button
+              type="button"
+              onClick={onOpen3DStudio}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-amber-300 hover:text-amber-200 transition-colors border border-amber-800/60 font-medium shadow-sm"
+              title="ፋና 3D ቨርቹዋል ዜና ስቱዲዮን ክፈት"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span>3D ስቱዲዮ</span>
+            </button>
+
             {/* Copy Script */}
             <button
               type="button"
@@ -185,6 +253,50 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             >
               <Trash2 className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        {/* Primary Broadcast Action Bar */}
+        <div className="mt-4 pt-3.5 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-neutral-950/80 p-3.5 rounded-xl border border-neutral-800">
+          <div className="flex items-center gap-2.5 text-xs text-neutral-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-bold text-white">የስቱዲዮ ቀጥታ ንባብ</span>
+            <span className="text-neutral-600 hidden sm:inline">|</span>
+            <span className="text-[11px] text-neutral-400 hidden sm:inline">
+              በፋና ጋዜጠኛ ድምፅ እና የጀርባ ሙዚቃ
+            </span>
+          </div>
+
+          <div className="w-full sm:w-auto">
+            {isPlaying ? (
+              <button
+                type="button"
+                onClick={onStopClick}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-xl shadow-lg shadow-red-950/50 transition-all cursor-pointer"
+              >
+                <Square className="w-4 h-4 fill-current" />
+                <span>አቁም (Stop Broadcast)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onPlayClick}
+                disabled={isLoading}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-2.5 text-sm font-extrabold text-neutral-950 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 active:scale-95 rounded-xl shadow-xl shadow-amber-950/60 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-neutral-950" />
+                    <span>ድምፅ በማዘጋጀት ላይ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>ዜናውን አንብብ (Broadcast)</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

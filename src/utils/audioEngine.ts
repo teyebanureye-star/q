@@ -8,7 +8,7 @@
  * - Multi-track Audio Mixing & WAV Export for social media videos
  */
 
-import { MusicBedType } from "../types/studio";
+import { MusicBedType, SoundEffectType } from "../types/studio";
 
 class StudioAudioEngine {
   private ctx: AudioContext | null = null;
@@ -16,12 +16,14 @@ class StudioAudioEngine {
   private masterGain: GainNode | null = null;
   private musicGain: GainNode | null = null;
   private voiceGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
 
   // Background music scheduling
   private musicIntervalId: any = null;
   private activeMusicType: MusicBedType = "none";
   private isDucked = false;
   private baseMusicVolume = 0.35;
+  private baseSfxVolume = 0.85;
 
   // Currently playing voice source
   private currentVoiceSource: AudioBufferSourceNode | null = null;
@@ -61,9 +63,13 @@ class StudioAudioEngine {
     this.voiceGain = this.ctx.createGain();
     this.voiceGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
 
+    this.sfxGain = this.ctx.createGain();
+    this.sfxGain.gain.setValueAtTime(this.baseSfxVolume, this.ctx.currentTime);
+
     // Audio routing
     this.musicGain.connect(this.masterGain);
     this.voiceGain.connect(this.masterGain);
+    this.sfxGain.connect(this.masterGain);
     this.masterGain.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
 
@@ -95,6 +101,13 @@ class StudioAudioEngine {
     if (this.musicGain && this.ctx) {
       const target = duck ? this.baseMusicVolume * 0.22 : this.baseMusicVolume;
       this.musicGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.15);
+    }
+  }
+
+  public setSfxVolume(volume: number) {
+    this.baseSfxVolume = Math.max(0, Math.min(1, volume));
+    if (this.sfxGain && this.ctx) {
+      this.sfxGain.gain.setTargetAtTime(this.baseSfxVolume, this.ctx.currentTime, 0.05);
     }
   }
 
@@ -176,6 +189,230 @@ class StudioAudioEngine {
       setTimeout(() => {
         resolve();
       }, 1400);
+    });
+  }
+
+  /**
+   * Soundboard Dispatcher
+   */
+  public async playSoundEffect(type: SoundEffectType): Promise<void> {
+    this.init();
+    if (!this.ctx || !this.sfxGain || type === "none") return;
+
+    if (type === "breaking_alert") {
+      await this.playIntroStinger();
+    } else if (type === "news_intro") {
+      await this.playNewsIntroFanfare();
+    } else if (type === "clock_chime") {
+      await this.playClockChimePips();
+    } else if (type === "transition_swoosh") {
+      await this.playTransitionSwoosh();
+    } else if (type === "social_ping") {
+      await this.playSocialPing();
+    }
+  }
+
+  /**
+   * News Intro Fanfare Stinger (Grand Brass Television Opening)
+   */
+  public playNewsIntroFanfare(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      // Fanfare triplets: D4 -> F#4 -> A4 -> D5 triumph chord
+      const notes = [
+        { time: 0, freq: 293.66, dur: 0.14 },
+        { time: 0.16, freq: 369.99, dur: 0.14 },
+        { time: 0.32, freq: 440.0, dur: 0.14 },
+        { time: 0.48, freq: 587.33, dur: 0.9 },
+      ];
+
+      notes.forEach((n) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+        const filter = this.ctx!.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(1600, now + n.time);
+
+        gain.gain.setValueAtTime(0, now + n.time);
+        gain.gain.linearRampToValueAtTime(0.35, now + n.time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.time + n.dur);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain!);
+
+        osc.start(now + n.time);
+        osc.stop(now + n.time + n.dur + 0.05);
+      });
+
+      // Supporting orchestral bass hit at 0.48s
+      const bassOsc = this.ctx.createOscillator();
+      const bassGain = this.ctx.createGain();
+      bassOsc.type = "triangle";
+      bassOsc.frequency.setValueAtTime(146.83, now + 0.48);
+      bassOsc.frequency.exponentialRampToValueAtTime(73.42, now + 1.2);
+      bassGain.gain.setValueAtTime(0.5, now + 0.48);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+
+      bassOsc.connect(bassGain);
+      bassGain.connect(this.sfxGain);
+      bassOsc.start(now + 0.48);
+      bassOsc.stop(now + 1.35);
+
+      setTimeout(() => resolve(), 1300);
+    });
+  }
+
+  /**
+   * Top-of-Hour Clock Chime & Pips (Radio/TV Station Time Signal)
+   */
+  public playClockChimePips(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      // 4 short countdown pips (1000Hz)
+      [0, 0.28, 0.56, 0.84].forEach((t) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1000, now + t);
+        gain.gain.setValueAtTime(0.3, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + t);
+        osc.stop(now + t + 0.09);
+      });
+
+      // Final sustained top-of-hour bell chime at 1.12s
+      const chimeTime = now + 1.12;
+      [1318.51, 1975.53].forEach((f) => {
+        const chimeOsc = this.ctx!.createOscillator();
+        const chimeGain = this.ctx!.createGain();
+        chimeOsc.type = "sine";
+        chimeOsc.frequency.setValueAtTime(f, chimeTime);
+
+        chimeGain.gain.setValueAtTime(0.4, chimeTime);
+        chimeGain.gain.exponentialRampToValueAtTime(0.0001, chimeTime + 1.4);
+
+        chimeOsc.connect(chimeGain);
+        chimeGain.connect(this.sfxGain!);
+        chimeOsc.start(chimeTime);
+        chimeOsc.stop(chimeTime + 1.45);
+      });
+
+      setTimeout(() => resolve(), 1800);
+    });
+  }
+
+  /**
+   * Transition Swoosh & Impact (Story Segment Divider)
+   */
+  public playTransitionSwoosh(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // 1. Noise Swoosh buffer
+      const bufferSize = this.ctx.sampleRate * 0.6;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.exponentialRampToValueAtTime(3200, now + 0.35);
+      filter.frequency.exponentialRampToValueAtTime(400, now + 0.6);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, now);
+      noiseGain.gain.linearRampToValueAtTime(0.4, now + 0.35);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.7);
+
+      // 2. Low impact thud at 0.35s
+      const thudOsc = this.ctx.createOscillator();
+      const thudGain = this.ctx.createGain();
+      thudOsc.type = "sine";
+      thudOsc.frequency.setValueAtTime(120, now + 0.35);
+      thudOsc.frequency.exponentialRampToValueAtTime(40, now + 0.75);
+
+      thudGain.gain.setValueAtTime(0.6, now + 0.35);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+      thudOsc.connect(thudGain);
+      thudGain.connect(this.sfxGain);
+
+      thudOsc.start(now + 0.35);
+      thudOsc.stop(now + 0.85);
+
+      setTimeout(() => resolve(), 850);
+    });
+  }
+
+  /**
+   * Social Media Tech Ping / Telegram Alert
+   */
+  public playSocialPing(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      [
+        { time: 0, freq: 2093 },
+        { time: 0.08, freq: 2637 },
+      ].forEach((p) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(p.freq, now + p.time);
+
+        gain.gain.setValueAtTime(0.35, now + p.time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + p.time + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + p.time);
+        osc.stop(now + p.time + 0.32);
+      });
+
+      setTimeout(() => resolve(), 400);
     });
   }
 

@@ -11,6 +11,18 @@
     {
       "source": "/api/news/headlines",
       "destination": "/api/news/headlines"
+    },
+    {
+      "source": "/api/news/transcribe",
+      "destination": "/api/news/transcribe"
+    },
+    {
+      "source": "/api/news/chat",
+      "destination": "/api/news/chat"
+    },
+    {
+      "source": "/api/news/image",
+      "destination": "/api/news/image"
     }
   ]
 }

@@ -67,16 +67,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setSuccessMessage("የይለፍ ቃል መቀየሪያ ሊንክ ወደ ኢሜይልዎ ተልኳል! እባክዎ ኢሜይልዎን ይክፈቱ።");
       }
     } catch (err: any) {
-      console.error("Auth error:", err);
-      let msg = err?.message || "ስህተት አጋጥሟል፤ እባክዎ እንደገና ይሞክሩ";
-      if (msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
-        msg = "የተሳሳተ ኢሜይል ወይም የይለፍ ቃል አስገብተዋል። እባክዎ ያረጋግጡ።";
-      } else if (msg.includes("email-already-in-use")) {
-        msg = "ይህ ኢሜይል አስቀድሞ ተመዝግቧል። እባክዎ ይግቡ ወይም የይለፍ ቃል ይቀይሩ።";
-      } else if (msg.includes("weak-password")) {
-        msg = "የይለፍ ቃል በጣም ደካማ ነው። ቢያንስ 6 ፊደላት ይጠቀሙ።";
-      } else if (msg.includes("invalid-email")) {
+      console.warn("Auth note:", err?.code || err?.message);
+      let msg = "ስህተት አጋጥሟል፤ እባክዎ እንደገና ይሞክሩ";
+      const code = err?.code || "";
+      const text = String(err?.message || "");
+
+      if (
+        code === "auth/invalid-credential" ||
+        text.includes("invalid-credential") ||
+        code === "auth/user-not-found" ||
+        code === "auth/wrong-password"
+      ) {
+        msg = "የተሳሳተ ኢሜይል ወይም የይለፍ ቃል አስገብተዋል፤ ወይም አካውንቱ ገና አልተመዘገበም። እባክዎ 'ተመዝገብ' የሚለውን ተጭነው ይመዝገቡ ወይም የይለፍ ቃል ይቀይሩ።";
+      } else if (code === "auth/email-already-in-use" || text.includes("email-already-in-use")) {
+        msg = "ይህ ኢሜይል አስቀድሞ ተመዝግቧል። እባክዎ 'ግባ' የሚለውን በመጫን ይግቡ።";
+      } else if (code === "auth/weak-password" || text.includes("weak-password")) {
+        msg = "የይለፍ ቃል ቢያንስ 6 ፊደላት ወይም ቁጥሮች መሆን አለበት።";
+      } else if (code === "auth/invalid-email" || text.includes("invalid-email")) {
         msg = "እባክዎ ትክክለኛ የኢሜይል አድራሻ ያስገቡ።";
+      } else if (code === "auth/network-request-failed" || text.includes("network")) {
+        msg = "የኔትወርክ መቋረጥ አጋጥሟል። እባክዎ ኢንተርኔትዎን አረጋግጠው እንደገና ይሞክሩ።";
       }
       setErrorMessage(msg);
     } finally {

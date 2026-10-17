@@ -41,6 +41,10 @@ import { DictionaryModal } from "./components/DictionaryModal";
 import { AuthModal } from "./components/AuthModal";
 import { AdminModal } from "./components/AdminModal";
 import { HeadlineGeneratorModal } from "./components/HeadlineGeneratorModal";
+import { AudioDictationModal } from "./components/AudioDictationModal";
+import { NewsroomChatModal } from "./components/NewsroomChatModal";
+import { NewsGraphicsModal } from "./components/NewsGraphicsModal";
+import { Virtual3DStudioModal } from "./components/Virtual3DStudioModal";
 
 export default function App() {
   // Navigation Section
@@ -57,6 +61,8 @@ export default function App() {
     musicVolume: 0.35,
     autoDucking: true,
     includeIntroStinger: true,
+    introSoundEffect: "breaking_alert",
+    sfxVolume: 0.85,
     reverbAmount: 0.2,
   });
 
@@ -76,6 +82,10 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [isHeadlineGeneratorOpen, setIsHeadlineGeneratorOpen] = useState<boolean>(false);
+  const [isDictationOpen, setIsDictationOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
+  const [isGraphicsOpen, setIsGraphicsOpen] = useState<boolean>(false);
+  const [is3DStudioOpen, setIs3DStudioOpen] = useState<boolean>(false);
 
   // Pronunciation Dictionary State
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>(() => getStoredDictionary());
@@ -151,6 +161,32 @@ export default function App() {
     setNotification({
       type: "success",
       text: "አዲሱ የዜና ርዕስ በስክሪፕቱ ውስጥ ተተክቷል!",
+    });
+  };
+
+  // Append Transcribed Audio to Script
+  const handleAppendScript = (spokenText: string) => {
+    if (!script.trim()) {
+      setScript(spokenText);
+    } else {
+      setScript(`${script.trim()}\n\n${spokenText}`);
+    }
+    setNotification({
+      type: "success",
+      text: "የተናገሩት ድምፅ ወደ ዜና ጽሑፍ ተቀይሮ ተጨምሯል!",
+    });
+  };
+
+  // Insert Newsroom Chat text to Script
+  const handleInsertChatText = (text: string) => {
+    if (!script.trim()) {
+      setScript(text);
+    } else {
+      setScript(`${script.trim()}\n\n${text}`);
+    }
+    setNotification({
+      type: "success",
+      text: "ከአዘጋጁ ረዳት የተገኘው ጽሑፍ በስክሪፕቱ ውስጥ ተካቷል!",
     });
   };
 
@@ -557,6 +593,14 @@ export default function App() {
               onOpenTeleprompter={() => setIsTeleprompterOpen(true)}
               onOpenDictionary={() => setIsDictionaryOpen(true)}
               onOpenHeadlineGenerator={() => setIsHeadlineGeneratorOpen(true)}
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              onPlayClick={handleBroadcast}
+              onStopClick={handleStop}
+              onOpenDictation={() => setIsDictationOpen(true)}
+              onOpenChat={() => setIsChatOpen(true)}
+              onOpenGraphics={() => setIsGraphicsOpen(true)}
+              onOpen3DStudio={() => setIs3DStudioOpen(true)}
             />
 
             <StudioControls
@@ -682,6 +726,32 @@ export default function App() {
         isOpen={isHeadlineGeneratorOpen}
         onClose={() => setIsHeadlineGeneratorOpen(false)}
         onApplyHeadline={handleApplyHeadline}
+      />
+
+      <AudioDictationModal
+        isOpen={isDictationOpen}
+        onClose={() => setIsDictationOpen(false)}
+        onAppendScript={handleAppendScript}
+      />
+
+      <NewsroomChatModal
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentScript={script}
+        onInsertText={handleInsertChatText}
+      />
+
+      <NewsGraphicsModal
+        isOpen={isGraphicsOpen}
+        onClose={() => setIsGraphicsOpen(false)}
+        currentHeadline={script.split("\n")[0] || "የፋና ብሮድካስቲንግ ዜና"}
+      />
+
+      <Virtual3DStudioModal
+        isOpen={is3DStudioOpen}
+        onClose={() => setIs3DStudioOpen(false)}
+        activeHeadline={script.split("\n")[0] || "የፋና ብሮድካስቲንግ ዜና"}
+        anchorName={selectedAnchor.nameAmharic}
       />
     </div>
   );

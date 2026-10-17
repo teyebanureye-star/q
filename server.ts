@@ -312,6 +312,116 @@ ${topic.trim()}
   }
 });
 
+/**
+ * Microphone Audio Transcribe Endpoint (Speech-to-Text with Gemini)
+ */
+app.post("/api/news/transcribe", async (req, res) => {
+  try {
+    const { audioBase64, mimeType = "audio/webm" } = req.body || {};
+    if (!audioBase64) {
+      return res.status(400).json({ error: "የድምፅ ቅጂ አልተገኘም (audioBase64 required)" });
+    }
+
+    const cleanBase64 = audioBase64.replace(/^data:[^;]+;base64,/, "");
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inlineData: {
+                data: cleanBase64,
+                mimeType: mimeType.split(";")[0],
+              },
+            },
+            {
+              text: `እርስዎ የፋና ብሮድካስቲንግ ከፍተኛ የዜና ቃለ-መጠይቅ እና ድምፅ አንባቢ ነዎት።
+ይህንን የተናገረውን የአማርኛ ድምፅ በትክክል ሰምተው ወደ ተነባቢ፣ ንጹህ እና ፕሮፌሽናል የአማርኛ የዜና ጽሑፍ ቀይረው ይመልሱ።
+ማስታወሻ፦ ንግግሩን እና ጽሑፉን ብቻ ጽፈው ይመልሱ፤ ምንም ተጨማሪ መግቢያ፣ ትርጓሜ ወይም ማብራሪያ አይጻፉ። ሥርዓተ-ነጥቦችን (፤ ፣ ።) በትክክል ይጠቀሙ።`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const transcript = response.text?.trim() || "";
+    return res.json({ transcript });
+  } catch (error: any) {
+    console.error("Transcribe Error:", error?.message || error);
+    return res.status(500).json({ error: error?.message || "ድምፁን ወደ ጽሑፍ መቀየር አልተቻለም" });
+  }
+});
+
+/**
+ * AI Newsroom Assistant Chat Endpoint
+ */
+app.post("/api/news/chat", async (req, res) => {
+  try {
+    const { messages } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "መልዕክት አልተገኘም (messages array required)" });
+    }
+
+    const formattedContents = messages.map((m: any) => ({
+      role: m.role === "assistant" || m.role === "model" ? "model" : "user",
+      parts: [{ text: m.text }],
+    }));
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: formattedContents,
+      config: {
+        systemInstruction: `እርስዎ የፋና ብሮድካስቲንግ ኮርፖሬት (FBC) ዋና የዜና ኤዲተርና የጋዜጠኞች ረዳት ነዎት።
+ለጋዜጠኞችና ለዜና አዘጋጆች የሚከተሉትን ሙያዊ ድጋፎች ይሰጣሉ:
+1. የዜና መረጃዎችንና ምንጮችን ማጣራት (Fact-checking advice)
+2. አጫጭር መረጃዎችን ወደ ሙሉ የዜና ዘገባ ማሳደግ
+3. ለቲክቶክ፣ ዩቲዩብ እና ቴሌግራም የሚሆኑ ማራኪ መንጠቆዎችን (Hooks) ማዘጋጀት
+4. ከእንግሊዝኛ ወደ አማርኛ የዜና አጻጻፍ ስልት መተርጎም
+መልስዎን ሁልጊዜ በአክብሮት፣ በማራኪ እና ፕሮፌሽናል የአማርኛ ቋንቋ ያቅርቡ።`,
+      },
+    });
+
+    const text = response.text || "መልስ ማዘጋጀት አልተቻለም።";
+    return res.json({ reply: text });
+  } catch (error: any) {
+    console.error("Chat Error:", error?.message || error);
+    return res.status(500).json({ error: error?.message || "መልስ ማግኘት አልተቻለም" });
+  }
+});
+
+/**
+ * AI News Thumbnail / Story Graphics Generator Endpoint
+ */
+app.post("/api/news/image", async (req, res) => {
+  try {
+    const { prompt, headline } = req.body || {};
+    const inputPrompt = prompt || headline || "Ethiopian broadcast news studio breaking news report";
+
+    const enhancedPrompt = `Photorealistic modern Ethiopian television broadcast news graphics for Fana Broadcasting Corporate, headline graphic: "${inputPrompt}", dramatic newsroom studio lighting, high resolution 8k, cinematic broadcast quality, clean graphic design.`;
+
+    const response = await ai.models.generateImages({
+      model: "imagen-3.0-generate-002",
+      prompt: enhancedPrompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: "16:9",
+      },
+    });
+
+    const image = response.generatedImages?.[0]?.image;
+    if (image?.imageBytes) {
+      const imageUrl = `data:image/jpeg;base64,${image.imageBytes}`;
+      return res.json({ imageUrl });
+    }
+
+    return res.status(500).json({ error: "ምስል ማመንጨት አልተቻለም" });
+  } catch (error: any) {
+    console.error("Image Gen Error:", error?.message || error);
+    return res.status(500).json({ error: error?.message || "የምስል አገልግሎት አልተሳካም" });
+  }
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 // Setup Vite in Dev or serve static in Prod

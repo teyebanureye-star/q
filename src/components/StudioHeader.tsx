@@ -44,7 +44,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         </div>
 
         {/* Zone 2: Navigation links */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium text-neutral-400">
+        <nav className="hidden xl:flex items-center gap-6 lg:gap-8 text-sm font-medium text-neutral-400">
           <button
             onClick={() => setActiveSection("studio")}
             className={`transition-colors whitespace-nowrap shrink-0 hover:text-white ${
@@ -109,11 +109,14 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
               <button
                 type="button"
-                onClick={logout}
-                className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg hover:bg-neutral-900 transition-colors"
-                title="ውጣ (Sign Out)"
+                onClick={async () => {
+                  await logout();
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-900 hover:bg-red-950/80 border border-neutral-700/80 hover:border-red-600/80 rounded-lg transition-all shadow-sm cursor-pointer"
+                title="ከአካውንት ውጣ (Sign Out)"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5 text-red-400" />
+                <span>ውጣ</span>
               </button>
             </div>
           ) : (

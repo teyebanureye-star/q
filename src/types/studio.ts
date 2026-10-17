@@ -16,6 +16,14 @@ export interface VoiceAnchor {
 
 export type MusicBedType = "breaking" | "prime" | "analysis" | "tech" | "none";
 
+export type SoundEffectType =
+  | "breaking_alert"    // 🚨 የሰበር ዜና ማስታወቂያ (Breaking Alert)
+  | "news_intro"         // 🎺 የዜና መግቢያ ጅንግል (News Intro Fanfare)
+  | "clock_chime"        // ⏱️ የዜና ሰዓት ደወል (Top-of-Hour Pips)
+  | "transition_swoosh"  // 💥 የዜና ትራንዚሽን ስዉሽ (Transition Swoosh)
+  | "social_ping"        // 📲 የሶሻል ሚዲያ ኖቲፊኬሽን (Social Ping)
+  | "none";
+
 export interface StudioSettings {
   selectedAnchorId: string;
   speechRate: number;      // 0.8 - 1.25
@@ -24,6 +32,8 @@ export interface StudioSettings {
   musicVolume: number;     // 0 - 1
   autoDucking: boolean;    // auto reduce music when speaking
   includeIntroStinger: boolean;
+  introSoundEffect: SoundEffectType; // Selected Intro Sound Effect
+  sfxVolume: number;       // Sound effect volume 0 - 1
   reverbAmount: number;    // 0 - 1
 }
 
