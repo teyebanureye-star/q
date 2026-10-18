@@ -20,6 +20,7 @@ import {
   Flame,
   Volume2,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
@@ -45,8 +46,12 @@ import { AudioDictationModal } from "./components/AudioDictationModal";
 import { NewsroomChatModal } from "./components/NewsroomChatModal";
 import { NewsGraphicsModal } from "./components/NewsGraphicsModal";
 import { Virtual3DStudioModal } from "./components/Virtual3DStudioModal";
+import { StudioAuthGate } from "./components/StudioAuthGate";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
+
   // Navigation Section
   const [activeSection, setActiveSection] = useState<string>("studio");
 
@@ -104,6 +109,9 @@ export default function App() {
       const updated = { ...prev, ...newPartial };
       if (newPartial.musicVolume !== undefined) {
         studioAudio.setMusicVolume(newPartial.musicVolume);
+      }
+      if (newPartial.sfxVolume !== undefined) {
+        studioAudio.setSfxVolume(newPartial.sfxVolume);
       }
       return updated;
     });
@@ -294,9 +302,9 @@ export default function App() {
       studioAudio.startRecording();
 
       // 1. Play intro stinger if enabled
-      if (settings.includeIntroStinger) {
-        setStatusMessage("🚨 የሰበር ዜና የመግቢያ ጅንግል...");
-        await studioAudio.playIntroStinger();
+      if (settings.includeIntroStinger && settings.introSoundEffect !== "none") {
+        setStatusMessage("🚨 የዜና መግቢያ ድምፅ ተፅዕኖ...");
+        await studioAudio.playSoundEffect(settings.introSoundEffect);
       }
 
       // 2. Start background music bed
@@ -453,6 +461,27 @@ export default function App() {
 
   const { wordCount, durationSeconds } = calculateAmharicDuration(script, settings.speechRate);
 
+  // Auth Loading Screen
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-neutral-100 p-4 font-sans selection:bg-amber-500">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 p-0.5 shadow-2xl shadow-red-900/50 flex items-center justify-center animate-pulse mb-4">
+          <Radio className="w-7 h-7 text-white" />
+        </div>
+        <h1 className="text-lg font-bold text-white tracking-wide">ፋና ድምፅ ዜና ስቱዲዮ</h1>
+        <div className="text-xs text-neutral-400 mt-2 font-mono flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+          <span>የስቱዲዮ መለያ እና ደህንነት በመረጋገጥ ላይ...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Mandatory Authentication Gate: Unauthenticated users cannot access the studio
+  if (!user) {
+    return <StudioAuthGate />;
+  }
+
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
       {/* Top Bar Navigation */}
@@ -601,6 +630,7 @@ export default function App() {
               onOpenChat={() => setIsChatOpen(true)}
               onOpenGraphics={() => setIsGraphicsOpen(true)}
               onOpen3DStudio={() => setIs3DStudioOpen(true)}
+              isAdmin={isAdmin}
             />
 
             <StudioControls
@@ -610,6 +640,7 @@ export default function App() {
               onExportMixedAudio={handleExportAudio}
               isExporting={isExporting}
               isPlaying={isPlaying}
+              onPlaySoundEffect={(type) => studioAudio.playSoundEffect(type)}
             />
           </div>
 

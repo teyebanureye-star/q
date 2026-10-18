@@ -10,12 +10,14 @@ import {
   Sparkles,
   Info,
   Volume2,
+  Lock,
 } from "lucide-react";
 import { DictionaryEntry } from "../types/studio";
 import {
   saveStoredDictionary,
   resetDictionaryToDefault,
 } from "../utils/amharicNormalizer";
+import { useAuth } from "../context/AuthContext";
 
 interface DictionaryModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
   setDictionary,
   onPreviewWord,
 }) => {
+  const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [newOriginal, setNewOriginal] = useState("");
   const [newReplacement, setNewReplacement] = useState("");
@@ -101,6 +104,10 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
   };
 
   const handleDeleteEntry = (id: string) => {
+    if (!isAdmin) {
+      showToast("❌ ዳታ የማጥፋት ፈቃድ ለአድሚን (Admin) ብቻ የተፈቀደ ነው!");
+      return;
+    }
     const updated = dictionary.filter((entry) => entry.id !== id);
     setDictionary(updated);
     saveStoredDictionary(updated);
@@ -108,6 +115,10 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
   };
 
   const handleResetDefaults = () => {
+    if (!isAdmin) {
+      showToast("❌ መዝገበ-ቃላቱን ወደ ነባሪ የመመለስ/ዳታ የማጥፋት ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው!");
+      return;
+    }
     if (window.confirm("መዝገበ-ቃላቱን ወደ መጀመሪያው ነባሪ ሁኔታ መመለስ ይፈልጋሉ?")) {
       const defaults = resetDictionaryToDefault();
       setDictionary(defaults);
@@ -132,12 +143,24 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <span>የቃላት አነባበብ መዝገበ-ቃላት (Phonetic Dictionary)</span>
-                <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                  {dictionary.length} ቃላት
-                </span>
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <span>የቃላት አነባበብ መዝገበ-ቃላት (Phonetic Dictionary)</span>
+                  <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                    {dictionary.length} ቃላት
+                  </span>
+                </h2>
+                {isAdmin ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
+                    ADMIN • ሙሉ የመሰረዝ ፈቃድ
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5 text-amber-400" />
+                    <span>ማጥፋት ለአድሚን ብቻ</span>
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-neutral-400">
                 የድምፅ አንባቢው በስህተት የሚያነባቸውን ቃላት እዚህ ያርሙና ያስቀምጡ (ለምሳሌ «ሰቨር» ➔ «ሰበር»)
               </p>
@@ -246,14 +269,25 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
               />
             </div>
 
-            <button
-              type="button"
-              onClick={handleResetDefaults}
-              className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-amber-300 transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>ነባሪዎችን መልስ (Reset Defaults)</span>
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-amber-300 transition-colors"
+                title="መዝገበ-ቃላቱን ወደ መጀመሪያው ሁኔታ መልስ"
+              >
+                <RotateCcw className="w-3 h-3 text-amber-400" />
+                <span>ነባሪዎችን መልስ (Reset Defaults)</span>
+              </button>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500 cursor-not-allowed opacity-75"
+                title="ዳታ የማጥፋት እና ወደ ነባሪ የመመለስ ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው"
+              >
+                <Lock className="w-3 h-3 text-amber-500/70" />
+                <span>ነባሪዎችን መልስ (ለአድሚን ብቻ)</span>
+              </span>
+            )}
           </div>
 
           {/* Dictionary Entries List */}
@@ -321,14 +355,23 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
                     )}
 
                     {!entry.isDefault && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEntry(entry.id)}
-                        className="p-1.5 text-neutral-400 hover:text-red-400 rounded hover:bg-neutral-800 transition-colors"
-                        title="ሰርዝ"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEntry(entry.id)}
+                          className="p-1.5 text-neutral-400 hover:text-red-400 rounded hover:bg-neutral-800 transition-colors"
+                          title="ቃሉን ሰርዝ (የአድሚን ፈቃድ)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span
+                          className="p-1.5 text-neutral-600 cursor-not-allowed flex items-center justify-center"
+                          title="ዳታ የማጥፋት ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-neutral-600" />
+                        </span>
+                      )
                     )}
                   </div>
                 </div>

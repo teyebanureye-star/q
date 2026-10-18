@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   MessageSquare,
   Camera,
+  Lock,
 } from "lucide-react";
 import { NewsScriptPreset } from "../types/studio";
 
@@ -41,6 +42,7 @@ interface NewsScriptEditorProps {
   onOpenChat?: () => void;
   onOpenGraphics?: () => void;
   onOpen3DStudio?: () => void;
+  isAdmin?: boolean;
 }
 
 export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
@@ -63,6 +65,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenChat,
   onOpenGraphics,
   onOpen3DStudio,
+  isAdmin = false,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -74,6 +77,9 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   };
 
   const handleClear = () => {
+    if (!isAdmin) {
+      return;
+    }
     if (!script) return;
     setScript("");
   };
@@ -115,10 +121,10 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
           className="w-full bg-neutral-950 text-neutral-100 rounded-lg p-3.5 border border-neutral-800/90 focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/40 outline-none transition-all resize-y text-sm sm:text-base leading-relaxed placeholder:text-neutral-600 font-sans"
         />
 
-        {/* Action Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5">
+        {/* Action Bar Row 1: Metrics & Utilities */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 pb-1">
           {/* Metrics */}
-          <div className="flex items-center gap-3 text-xs font-mono text-neutral-400">
+          <div className="flex items-center gap-2.5 text-xs font-mono text-neutral-400">
             <span>
               ቃላት: <strong className="text-amber-400 tabular-nums">{wordCount}</strong>
             </span>
@@ -127,111 +133,34 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
               የንባብ ጊዜ: <strong className="text-amber-400 tabular-nums">{durationSeconds}</strong> ሰከንድ
             </span>
             {durationSeconds <= 60 && durationSeconds > 10 && (
-              <span className="hidden md:inline-block text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-sans">
-                ✓ ለቲክቶክ እና ሪልስ ተስማሚ (Shorts ready)
+              <span className="hidden sm:inline-block text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-sans">
+                ✓ ለቲክቶክና ሪልስ ተስማሚ
               </span>
             )}
           </div>
 
-          {/* Action Tools Cluster */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Text Editor Utilities */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Abbreviation & Phonetics Normalizer */}
             <button
               type="button"
               onClick={onNormalizeAbbreviations}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/25 font-medium shadow-sm"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/25 font-medium shadow-sm"
               title="አጽህሮተ-ቃላት (ጠ/ሚ)፣ ቁጥሮች እና ሥርዓተ-ነጥቦችን ለጋዜጠኛ ንባብ በሚመች ሁኔታ ያስተካክላል"
             >
               <Wand2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>አነባበብና አጽህሮተ-ቃል አስተካክል</span>
+              <span>አጽህሮተ-ቃል</span>
             </button>
 
             {/* Custom Pronunciation Dictionary */}
             <button
               type="button"
               onClick={onOpenDictionary}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors border border-neutral-700/80 font-medium shadow-sm"
-              title="የቃላት አነባበብ መዝገበ-ቃላት (የተሳሳቱ አነባበቦችን ለማረም)"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors border border-neutral-700/80 font-medium shadow-sm"
+              title="የቃላት አነባበብ መዝገበ-ቃላት"
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span>መዝገበ-ቃላት (Dictionary)</span>
-            </button>
-
-            {/* AI News Polisher */}
-            <button
-              type="button"
-              onClick={onOpenAiPolish}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-red-600/25 via-amber-600/25 to-amber-500/25 hover:from-red-600/35 hover:to-amber-500/35 text-amber-200 transition-colors border border-amber-500/40 font-semibold shadow-sm"
-              title="በፋና የዜና አጻጻፍ ስልት ጽሑፉን በኤአይ አሳምር"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>በፋና ስልት አሳምር</span>
-            </button>
-
-            {/* AI Headline Generator */}
-            <button
-              type="button"
-              onClick={onOpenHeadlineGenerator}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-amber-500/20 to-red-500/20 hover:from-amber-500/30 hover:to-red-500/30 text-amber-300 hover:text-amber-200 transition-colors border border-amber-500/40 font-semibold shadow-sm"
-              title="በርዕሰ ጉዳይ ሳቢ የዜና ርዕስ በኤአይ አመንጭ"
-            >
-              <Heading className="w-3.5 h-3.5 text-amber-400" />
-              <span>ርዕስ አመንጭ</span>
-            </button>
-
-            {/* Fullscreen Teleprompter */}
-            <button
-              type="button"
-              onClick={onOpenTeleprompter}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-cyan-300 hover:text-cyan-200 transition-colors border border-cyan-800/60 font-medium shadow-sm"
-              title="ሙሉ ስክሪን ቴሌፕሮምፕተር ክፈት"
-            >
-              <Tv className="w-3.5 h-3.5 text-cyan-400" />
-              <span>ቴሌፕሮምፕተር</span>
-            </button>
-
-            {/* Voice Dictation (Speech-to-Text) */}
-            <button
-              type="button"
-              onClick={onOpenDictation}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-red-300 hover:text-red-200 transition-colors border border-red-800/60 font-medium shadow-sm"
-              title="በማይክሮፎን ተናግረው ዜናውን በጽሑፍ ያዘጋጁ (Speech-to-Text)"
-            >
-              <Mic className="w-3.5 h-3.5 text-red-400" />
-              <span>ድምፅ ተናገር</span>
-            </button>
-
-            {/* AI Newsroom Assistant Chat */}
-            <button
-              type="button"
-              onClick={onOpenChat}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-emerald-300 hover:text-emerald-200 transition-colors border border-emerald-800/60 font-medium shadow-sm"
-              title="የፋና ዜና ክፍል AI ረዳት ጋር ተወያዩ"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-              <span>AI ረዳት</span>
-            </button>
-
-            {/* AI News Graphics */}
-            <button
-              type="button"
-              onClick={onOpenGraphics}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-violet-300 hover:text-violet-200 transition-colors border border-violet-800/60 font-medium shadow-sm"
-              title="ለዜናው የሚሆን 16:9 ምስልና ሽፋን (Thumbnail) አመንጭ"
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-violet-400" />
-              <span>የዜና ምስል</span>
-            </button>
-
-            {/* 3D Virtual Studio */}
-            <button
-              type="button"
-              onClick={onOpen3DStudio}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-950 hover:bg-neutral-800 text-amber-300 hover:text-amber-200 transition-colors border border-amber-800/60 font-medium shadow-sm"
-              title="ፋና 3D ቨርቹዋል ዜና ስቱዲዮን ክፈት"
-            >
-              <Camera className="w-3.5 h-3.5 text-amber-400" />
-              <span>3D ስቱዲዮ</span>
+              <span>መዝገበ-ቃላት</span>
             </button>
 
             {/* Copy Script */}
@@ -245,13 +174,112 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             </button>
 
             {/* Clear Textarea */}
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg hover:bg-neutral-800 transition-colors"
+                title="ስክሪፕቱን አጽዳ (የአድሚን ፈቃድ)"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            ) : (
+              <div
+                className="p-1.5 text-neutral-600 rounded-lg cursor-not-allowed flex items-center justify-center"
+                title="ዳታ የማጥፋት ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው"
+              >
+                <Lock className="w-4 h-4 text-neutral-600" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Bar Row 2: Dedicated AI & Broadcast Tools Dock */}
+        <div className="mt-2 p-3 rounded-xl bg-neutral-950/90 border border-neutral-800/90 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-neutral-400 pb-1 border-b border-neutral-900">
+            <span className="font-bold text-amber-400/90 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>የዜና ክፍል AI እና ስቱዲዮ መሣሪያዎች (Studio Broadcast Tools)</span>
+            </span>
+            <span className="text-neutral-500 text-[10px] hidden sm:inline">በ 1-ጠቅታ ይክፈቱ</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {/* Voice Dictation (Speech-to-Text) */}
             <button
               type="button"
-              onClick={handleClear}
-              className="p-1.5 text-neutral-400 hover:text-red-400 rounded-lg hover:bg-neutral-800 transition-colors"
-              title="አጽዳ"
+              onClick={onOpenDictation}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-red-950/60 text-red-300 hover:text-red-200 transition-all border border-red-800/70 hover:border-red-600 font-semibold shadow-sm shrink-0"
+              title="በማይክሮፎን ተናግረው ዜናውን በጽሑፍ ያዘጋጁ (Speech-to-Text)"
             >
-              <Trash2 className="w-4 h-4" />
+              <Mic className="w-3.5 h-3.5 text-red-400 animate-pulse" />
+              <span>ድምፅ ተናገር (Dictate)</span>
+            </button>
+
+            {/* AI News Polisher */}
+            <button
+              type="button"
+              onClick={onOpenAiPolish}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-red-600/25 via-amber-600/25 to-amber-500/25 hover:from-red-600/40 hover:to-amber-500/40 text-amber-200 transition-all border border-amber-500/50 font-semibold shadow-sm shrink-0"
+              title="በፋና የዜና አጻጻፍ ስልት ጽሑፉን በኤአይ አሳምር"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>በፋና ስልት አሳምር</span>
+            </button>
+
+            {/* AI Headline Generator */}
+            <button
+              type="button"
+              onClick={onOpenHeadlineGenerator}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-amber-950/50 text-amber-300 hover:text-amber-200 transition-all border border-amber-500/40 font-semibold shadow-sm shrink-0"
+              title="በርዕሰ ጉዳይ ሳቢ የዜና ርዕስ በኤአይ አመንጭ"
+            >
+              <Heading className="w-3.5 h-3.5 text-amber-400" />
+              <span>ርዕስ አመንጭ</span>
+            </button>
+
+            {/* AI Newsroom Assistant Chat */}
+            <button
+              type="button"
+              onClick={onOpenChat}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-emerald-950/50 text-emerald-300 hover:text-emerald-200 transition-all border border-emerald-700/60 font-semibold shadow-sm shrink-0"
+              title="የፋና ዜና ክፍል AI ረዳት ጋር ተወያዩ"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI ረዳት</span>
+            </button>
+
+            {/* AI News Graphics */}
+            <button
+              type="button"
+              onClick={onOpenGraphics}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-purple-950/50 text-purple-300 hover:text-purple-200 transition-all border border-purple-700/60 font-semibold shadow-sm shrink-0"
+              title="ለዜናው የሚሆን 16:9 ምስልና ሽፋን (Thumbnail) አመንጭ"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-purple-400" />
+              <span>የዜና ምስል</span>
+            </button>
+
+            {/* Fullscreen Teleprompter */}
+            <button
+              type="button"
+              onClick={onOpenTeleprompter}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-cyan-950/50 text-cyan-300 hover:text-cyan-200 transition-all border border-cyan-700/60 font-semibold shadow-sm shrink-0"
+              title="ሙሉ ስክሪን ቴሌፕሮምፕተር ክፈት"
+            >
+              <Tv className="w-3.5 h-3.5 text-cyan-400" />
+              <span>ቴሌፕሮምፕተር</span>
+            </button>
+
+            {/* 3D Virtual Studio */}
+            <button
+              type="button"
+              onClick={onOpen3DStudio}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 hover:text-amber-100 transition-all border border-amber-500/60 font-bold shadow-sm shrink-0"
+              title="ፋና 3D ቨርቹዋል ዜና ስቱዲዮን ክፈት"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span>3D ስቱዲዮ</span>
             </button>
           </div>
         </div>
