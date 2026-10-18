@@ -534,7 +534,7 @@ export default function App() {
                     FBC NEWSROOM STUDIO
                   </span>
                   <span className="text-xs text-neutral-400 font-mono">
-                    ፋና ብሮድካስቲንግ ኮርፖሬት
+                    ዜና አንባቢ ስቱዲዮው
                   </span>
                 </div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white text-balance">
@@ -775,13 +775,13 @@ export default function App() {
       <NewsGraphicsModal
         isOpen={isGraphicsOpen}
         onClose={() => setIsGraphicsOpen(false)}
-        currentHeadline={script.split("\n")[0] || "የፋና ብሮድካስቲንግ ዜና"}
+        currentHeadline={script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው ዜና"}
       />
 
       <Virtual3DStudioModal
         isOpen={is3DStudioOpen}
         onClose={() => setIs3DStudioOpen(false)}
-        activeHeadline={script.split("\n")[0] || "የፋና ብሮድካስቲንግ ዜና"}
+        activeHeadline={script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው ዜና"}
         anchorName={selectedAnchor.nameAmharic}
       />
     </div>

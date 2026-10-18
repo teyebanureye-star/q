@@ -119,7 +119,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   : "የይለፍ ቃል መቀየሪያ (Reset Password)"}
               </h2>
               <p className="text-[11px] text-neutral-400">
-                የፋና ብሮድካስቲንግ ድምፅ ስቱዲዮ አባልነት
+                የዜና አንባቢ ስቱዲዮው አባልነት
               </p>
             </div>
           </div>

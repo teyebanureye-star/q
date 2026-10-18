@@ -151,7 +151,7 @@ export const NewsGraphicsModal: React.FC<NewsGraphicsModalProps> = ({
               <div className="text-center space-y-2 p-6">
                 <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto" />
                 <p className="text-xs text-neutral-300 font-medium">
-                  የፋና ብሮድካስቲንግ ስቱዲዮ ግራፊክስ በማዘጋጀት ላይ...
+                  የዜና አንባቢ ስቱዲዮው ግራፊክስ በማዘጋጀት ላይ...
                 </p>
                 <p className="text-[11px] text-neutral-500">Imagen 3.0 Neural Art</p>
               </div>

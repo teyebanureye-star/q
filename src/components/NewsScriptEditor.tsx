@@ -116,7 +116,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
         <textarea
           value={script}
           onChange={(e) => setScript(e.target.value)}
-          placeholder="ጋዜጠኛው እንዲያነብልዎ የሚፈልጉትን የዜና ጽሑፍ እዚህ ይጻፉ ወይም ይለጥፉ... (ምሳሌ፡ ሰበር ዜና፤ የፋና ብሮድካስቲንግ ኮርፖሬት የሰዓቱን አበይት መረጃዎች ይዘንላችሁ ቀርበናል...)"
+          placeholder="ጋዜጠኛው እንዲያነብልዎ የሚፈልጉትን የዜና ጽሑፍ እዚህ ይጻፉ ወይም ይለጥፉ... (ምሳሌ፡ ሰበር ዜና፤ የዜና አንባቢ ስቱዲዮው የሰዓቱን አበይት መረጃዎች ይዘንላችሁ ቀርበናል...)"
           rows={7}
           className="w-full bg-neutral-950 text-neutral-100 rounded-lg p-3.5 border border-neutral-800/90 focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/40 outline-none transition-all resize-y text-sm sm:text-base leading-relaxed placeholder:text-neutral-600 font-sans"
         />

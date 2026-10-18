@@ -1,6 +1,7 @@
 import React from "react";
 import { VoiceAnchor } from "../types/studio";
-import { Volume2, CheckCircle2, Mic, Radio, Play, Square } from "lucide-react";
+import { Volume2, CheckCircle2, Mic, Square } from "lucide-react";
+import { useLanguage } from "../context/LanguageContext";
 
 interface AnchorSelectorProps {
   anchors: VoiceAnchor[];
@@ -17,6 +18,9 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
   onPreviewSample,
   previewingAnchorId,
 }) => {
+  const { language } = useLanguage();
+  const isEn = language === "en";
+
   return (
     <div className="bg-neutral-900/95 border border-neutral-800 rounded-xl p-4 sm:p-5 shadow-xl shadow-black/30 space-y-4">
       {/* Header */}
@@ -27,13 +31,15 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
           </div>
           <div>
             <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <span>የፋና ዜና ጋዜጠኞች</span>
+              <span>{isEn ? "Broadcast News Anchors" : "የዜና ጋዜጠኞች"}</span>
               <span className="text-[11px] font-mono text-amber-400 font-normal px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                5 Anchors
+                {anchors.length} Anchors
               </span>
             </h2>
             <p className="text-xs text-neutral-400">
-              ዜናዎን የሚያነብልዎትን የፋና ጋዜጠኛ ይምረጡ
+              {isEn
+                ? "Select a certified broadcast voice anchor for your news broadcast"
+                : "ዜናዎን የሚያነብልዎትን ጋዜጠኛ ይምረጡ"}
             </p>
           </div>
         </div>
@@ -44,6 +50,11 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
         {anchors.map((anchor) => {
           const isSelected = selectedAnchorId === anchor.id;
           const isPreviewing = previewingAnchorId === anchor.id;
+
+          const displayName = isEn ? anchor.nameEnglish : anchor.nameAmharic;
+          const subName = isEn ? anchor.nameAmharic : anchor.nameEnglish;
+          const displayRole = isEn ? (anchor.roleEnglish || anchor.roleAmharic) : anchor.roleAmharic;
+          const displayDesc = isEn ? (anchor.descriptionEnglish || anchor.description) : anchor.description;
 
           return (
             <div
@@ -61,7 +72,7 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
                 <div className="relative w-13 h-13 rounded-xl overflow-hidden bg-neutral-800 shrink-0 border border-neutral-700/80 shadow-sm">
                   <img
                     src={anchor.avatarUrl}
-                    alt={anchor.nameAmharic}
+                    alt={anchor.nameEnglish}
                     className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = "none";
@@ -79,10 +90,10 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white truncate">
-                      {anchor.nameAmharic}
+                      {displayName}
                     </h3>
                     <span className="text-[10px] font-mono text-neutral-400 hidden sm:inline">
-                      ({anchor.nameEnglish})
+                      ({subName})
                     </span>
                     {isSelected && (
                       <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
@@ -90,11 +101,11 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
                   </div>
 
                   <p className="text-xs text-amber-300/90 font-medium truncate mt-0.5">
-                    {anchor.roleAmharic}
+                    {displayRole}
                   </p>
 
                   <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
-                    {anchor.description}
+                    {displayDesc}
                   </p>
                 </div>
               </div>
@@ -107,22 +118,22 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
                     e.stopPropagation();
                     onPreviewSample(anchor);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm cursor-pointer ${
                     isPreviewing
                       ? "bg-amber-500 text-neutral-950 shadow-amber-500/20"
                       : "bg-neutral-800 text-neutral-200 hover:bg-neutral-700 hover:text-white border border-neutral-700/80"
                   }`}
-                  title="የጋዜጠኛውን ድምፅ አድምጥ"
+                  title={isEn ? "Preview anchor audio" : "የጋዜጠኛውን ድምፅ አድምጥ"}
                 >
                   {isPreviewing ? (
                     <>
                       <Square className="w-3 h-3 fill-current" />
-                      <span>በማድመጥ ላይ...</span>
+                      <span>{isEn ? "Playing..." : "በማድመጥ ላይ..."}</span>
                     </>
                   ) : (
                     <>
                       <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                      <span>ድምፁን ሞክር</span>
+                      <span>{isEn ? "Preview" : "ድምፁን ሞክር"}</span>
                     </>
                   )}
                 </button>

@@ -30,7 +30,8 @@ export default async function handler(req: any, res: any) {
     const {
       text,
       voice = "Fenrir",
-      style = "Authoritative Ethiopian broadcast news anchor at Fana Broadcasting Corporate, reading Amharic news clearly with natural broadcast rhythm and cadence",
+      style,
+      language = "am",
     } = req.body || {};
 
     if (!text || typeof text !== "string" || !text.trim()) {
@@ -38,7 +39,8 @@ export default async function handler(req: any, res: any) {
     }
 
     const cleanText = text.trim();
-    const cacheKey = `${voice}:::${cleanText}:::${style}`;
+    const isEnglish = language === "en" || /^[a-zA-Z0-9\s.,!?'"():;\-_/]+$/.test(cleanText.substring(0, 80));
+    const cacheKey = `${voice}:::${cleanText}:::${style || "default"}:::${isEnglish ? "en" : "am"}`;
 
     if (audioCache.has(cacheKey)) {
       const cached = audioCache.get(cacheKey)!;
@@ -60,8 +62,15 @@ export default async function handler(req: any, res: any) {
 
     let audioBase64: string | undefined;
 
-    const amharicPhoneticDirective = "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation.";
-    const fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
+    const languageDirective = isEnglish
+      ? "Flawless international broadcast news delivery in English. Speak with crisp, authoritative BBC/CNN style television newsroom articulation, steady rhythm, natural breath control, and professional broadcast pacing."
+      : "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation.";
+
+    const defaultAmharicStyle = "Authoritative news anchor at Ethiopian News Studio, reading news clearly with natural broadcast rhythm and cadence";
+    const defaultEnglishStyle = "Authoritative international television news anchor, delivering stories clearly with polished transatlantic or British newsroom diction";
+
+    const baseStyle = style || (isEnglish ? defaultEnglishStyle : defaultAmharicStyle);
+    const fullStyle = `${languageDirective} ${baseStyle}`;
 
     // Try primary model (gemini-3.8-flash-lite-tts)
     try {

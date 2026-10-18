@@ -105,7 +105,7 @@ export const StudioAuthGate: React.FC = () => {
               </div>
               <div className="text-left">
                 <span className="text-sm font-extrabold text-white tracking-wider block">
-                  ፋና ብሮድካስቲንግ ኮርፖሬት
+                  ዜና አንባቢ ስቱዲዮው
                 </span>
                 <span className="text-[10px] text-amber-400 font-mono tracking-widest uppercase block">
                   FANA VOICE NEWS STUDIO
@@ -361,7 +361,7 @@ export const StudioAuthGate: React.FC = () => {
 
           {/* Footer note */}
           <div className="text-center text-[11px] text-neutral-500 pt-2 font-mono">
-            Fana Broadcasting Corporate • News Audio Production Studio © 2026
+            ዜና አንባቢ ስቱዲዮው • News Audio Production Studio © 2026
           </div>
         </div>
       </div>

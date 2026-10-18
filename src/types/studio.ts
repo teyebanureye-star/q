@@ -3,12 +3,16 @@ export interface VoiceAnchor {
   nameAmharic: string;
   nameEnglish: string;
   roleAmharic: string;
+  roleEnglish?: string;
   geminiVoice: "Fenrir" | "Kore" | "Charon" | "Puck" | "Zephyr";
   styleDirective: string;
+  styleDirectiveEnglish?: string;
   gender: "male" | "female";
   avatarUrl: string;
   description: string;
+  descriptionEnglish?: string;
   sampleText: string;
+  sampleTextEnglish?: string;
   sampleAudioUrl?: string;
   defaultPitch: number; // 0.8 to 1.2
   defaultRate: number;  // 0.8 to 1.2
@@ -35,13 +39,17 @@ export interface StudioSettings {
   introSoundEffect: SoundEffectType; // Selected Intro Sound Effect
   sfxVolume: number;       // Sound effect volume 0 - 1
   reverbAmount: number;    // 0 - 1
+  language?: "am" | "en";  // Audio & Interface language mode
 }
 
 export interface NewsScriptPreset {
   id: string;
   categoryAmharic: string;
+  categoryEnglish?: string;
   headlineAmharic: string;
+  headlineEnglish?: string;
   contentAmharic: string;
+  contentEnglish?: string;
   recommendedAnchorId: string;
   musicBed: MusicBedType;
   durationEstimateSec: number;

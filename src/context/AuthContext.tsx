@@ -20,6 +20,9 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: "admin" | "editor" | "user";
+  isBlocked?: boolean;
+  blockedReason?: string;
+  blockedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }

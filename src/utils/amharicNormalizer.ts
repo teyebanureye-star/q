@@ -116,8 +116,8 @@ export const DEFAULT_DICTIONARY: DictionaryEntry[] = [
   {
     id: "def_14",
     originalWord: "FBC",
-    phoneticReplacement: "ፋና ብሮድካስቲንግ ኮርፖሬት",
-    notes: "የሚዲያ ተቋም ስም",
+    phoneticReplacement: "ዜና አንባቢ ስቱዲዮው",
+    notes: "የዜና ስቱዲዮ ስም",
     enabled: true,
     isDefault: true,
   },

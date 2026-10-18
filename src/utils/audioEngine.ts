@@ -724,7 +724,7 @@ class StudioAudioEngine {
    */
   public speakWithWebSpeech(
     text: string,
-    options: { rate?: number; pitch?: number; voiceGender?: "male" | "female" } = {}
+    options: { rate?: number; pitch?: number; voiceGender?: "male" | "female"; language?: "am" | "en" } = {}
   ): Promise<void> {
     this.stopVoice();
     this.init();
@@ -741,15 +741,23 @@ class StudioAudioEngine {
       utterance.rate = options.rate ?? 0.95;
       utterance.pitch = options.pitch ?? (options.voiceGender === "female" ? 1.05 : 0.85);
 
-      // Look for Amharic or best available voice
       const voices = window.speechSynthesis.getVoices();
-      const amVoice = voices.find((v) => v.lang.startsWith("am") || v.lang.startsWith("gez"));
-      if (amVoice) {
-        utterance.voice = amVoice;
-        utterance.lang = amVoice.lang;
+      if (options.language === "en") {
+        const enVoice = voices.find((v) => v.lang.startsWith("en"));
+        if (enVoice) {
+          utterance.voice = enVoice;
+          utterance.lang = enVoice.lang;
+        } else {
+          utterance.lang = "en-US";
+        }
       } else {
-        // Fallback to primary preferred voice
-        utterance.lang = "am-ET";
+        const amVoice = voices.find((v) => v.lang.startsWith("am") || v.lang.startsWith("gez"));
+        if (amVoice) {
+          utterance.voice = amVoice;
+          utterance.lang = amVoice.lang;
+        } else {
+          utterance.lang = "am-ET";
+        }
       }
 
       this.duckMusic(true);

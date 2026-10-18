@@ -503,7 +503,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               በርዕሰ አንቀጽ
             </span>
             <span className="font-semibold text-neutral-200 truncate font-sans">
-              {activeHeadline || "የፋና ብሮድካስቲንግ ኮርፖሬት የቀጥታ ስርጭት ስቱዲዮ"}
+              {activeHeadline || "የዜና አንባቢ ስቱዲዮው የቀጥታ ስርጭት"}
             </span>
           </div>
         </div>
