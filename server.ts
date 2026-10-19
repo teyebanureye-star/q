@@ -35,14 +35,19 @@ const audioCache = new Map<string, { audioBase64: string; mimeType: string; time
  */
 app.post("/api/tts/generate", async (req, res) => {
   try {
-    const { text, voice = "Fenrir", style = "Authoritative Ethiopian broadcast news anchor at Fana Broadcasting Corporate, reading Amharic news clearly with natural broadcast rhythm and cadence" } = req.body;
+    const {
+      text,
+      voice = "Fenrir",
+      style,
+      language = "am",
+    } = req.body;
 
     if (!text || typeof text !== "string" || !text.trim()) {
       return res.status(400).json({ error: "ጽሑፍ አልተገኘም (Text is required)" });
     }
 
     const cleanText = text.trim();
-    const cacheKey = `${voice}:::${cleanText}:::${style}`;
+    const cacheKey = `${voice}:::${language}:::${cleanText}:::${style || ""}`;
 
     if (audioCache.has(cacheKey)) {
       const cached = audioCache.get(cacheKey)!;
@@ -55,8 +60,16 @@ app.post("/api/tts/generate", async (req, res) => {
 
     let audioBase64: string | undefined;
 
-    const amharicPhoneticDirective = "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation.";
-    const fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
+    let fullStyle: string;
+    if (language === "en") {
+      const englishBroadcastDirective =
+        "Crisp, authoritative international television broadcast news anchor. Fluent, native English news delivery with impeccable diction, rhythmic television newsroom pacing, confident cadence, and professional broadcast microphone presence. Zero robotic artifacts.";
+      fullStyle = style ? `${englishBroadcastDirective} ${style}` : englishBroadcastDirective;
+    } else {
+      const amharicPhoneticDirective =
+        "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation. Authoritative news anchor reading Amharic news clearly with natural broadcast rhythm and cadence.";
+      fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
+    }
 
     // Call Gemini 3.8 Flash Lite TTS with speech configuration
     try {
@@ -158,8 +171,8 @@ app.post("/api/news/format", async (req, res) => {
       return res.status(400).json({ error: "ጽሑፍ አልተገኘም (Raw text required)" });
     }
 
-    const prompt = `እርስዎ የፋና ብሮድካስቲንግ ኮርፖሬት (Fana Broadcasting Corporate) ከፍተኛ የዜና አዘጋጅና ኤዲተር ነዎት። 
-የቀረበውን ጽሑፍ ተመልክተው ለሶሻል ሚዲያ (ቲክቶክ፣ ቴሌግራም፣ ዩቲዩብ) እና ለቴሌቪዥን ዜና አቅራቢዎች ተስማሚ በሆነ የፋና ፕሮፌሽናል የዜና አጻጻፍ ስልት ያዘጋጁ።
+    const prompt = `እርስዎ የዜና አንባቢ ስቱዲዮው (News Reader Studio) ከፍተኛ የዜና አዘጋጅና ኤዲተር ነዎት። 
+የቀረበውን ጽሑፍ ተመልክተው ለሶሻል ሚዲያ (ቲክቶክ፣ ቴሌግራም፣ ዩቲዩብ) እና ለቴሌቪዥን ዜና አቅራቢዎች ተስማሚ በሆነ የዜና አንባቢ ስቱዲዮው ፕሮፌሽናል የዜና አጻጻፍ ስልት ያዘጋጁ።
 
 የተሰጠው ጽሑፍ:
 """
@@ -431,7 +444,7 @@ app.post("/api/news/image", async (req, res) => {
     const { prompt, headline } = req.body || {};
     const inputPrompt = prompt || headline || "Ethiopian broadcast news studio breaking news report";
 
-    const enhancedPrompt = `Photorealistic modern Ethiopian television broadcast news graphics for Fana Broadcasting Corporate, headline graphic: "${inputPrompt}", dramatic newsroom studio lighting, high resolution 8k, cinematic broadcast quality, clean graphic design.`;
+    const enhancedPrompt = `Photorealistic modern Ethiopian television broadcast news graphics for News Reader Studio (ዜና አንባቢ ስቱዲዮው), headline graphic: "${inputPrompt}", dramatic newsroom studio lighting, high resolution 8k, cinematic broadcast quality, clean graphic design.`;
 
     const response = await ai.models.generateImages({
       model: "imagen-3.0-generate-002",

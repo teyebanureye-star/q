@@ -55,6 +55,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // In-modal dialog states (no window.prompt/confirm/alert)
+  const [suspendTarget, setSuspendTarget] = useState<{ user: UserProfile; reason: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+
   // Moderation state
   const [newBannedWord, setNewBannedWord] = useState<string>("");
   const [noticeText, setNoticeText] = useState<string>(systemNotice || "");
@@ -107,23 +111,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Block / Suspend User
   const handleToggleBlock = async (targetUser: UserProfile) => {
     const isCurrentlyBlocked = !!targetUser.isBlocked;
-    const actionLabel = isCurrentlyBlocked ? "እገዳውን ማንሳት" : "ማገድ (Suspend)";
 
-    let reason: string | null = null;
     if (!isCurrentlyBlocked) {
-      reason = window.prompt(
-        `«${targetUser.displayName || targetUser.email}» የተባሉትን ተጠቃሚ ለማገድ ምክንያት ያስገቡ፦`,
-        "አላስፈላጊ ወይም የተከለከለ የዜና ይዘት በማሰራጨት"
-      );
-      if (reason === null) return; // User cancelled
+      // Open inline suspend modal with editable reason
+      setSuspendTarget({
+        user: targetUser,
+        reason: "አላስፈላጊ ወይም የተከለከለ የዜና ይዘት በማሰራጨት",
+      });
+      return;
     }
 
+    // Direct unblock
     try {
       const userRef = doc(db, "users", targetUser.id);
       await updateDoc(userRef, {
-        isBlocked: !isCurrentlyBlocked,
-        blockedReason: isCurrentlyBlocked ? null : reason || "የስቱዲዮ ደንብ መጣስ",
-        blockedAt: isCurrentlyBlocked ? null : new Date().toISOString(),
+        isBlocked: false,
+        blockedReason: null,
+        blockedAt: null,
         updatedAt: new Date().toISOString(),
       });
 
@@ -133,28 +137,57 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           u.id === targetUser.id
             ? {
                 ...u,
-                isBlocked: !isCurrentlyBlocked,
-                blockedReason: isCurrentlyBlocked ? undefined : reason || undefined,
+                isBlocked: false,
+                blockedReason: undefined,
               }
             : u
         )
       );
 
-      showToast(
-        isCurrentlyBlocked
-          ? `የ ${targetUser.email} እገዳ በተሳካ ሁኔታ ተነስቷል!`
-          : `ተጠቃሚ ${targetUser.email} በስኬት ታግዷል!`
-      );
+      showToast(`የ ${targetUser.email} እገዳ በተሳካ ሁኔታ ተነስቷል!`);
     } catch (err: any) {
       console.error("Failed to update user block status:", err);
       setActionError("የተጠቃሚውን ሁኔታ ማስተካከል አልተቻለም፦ " + (err?.message || ""));
     }
   };
 
+  const handleConfirmSuspend = async () => {
+    if (!suspendTarget) return;
+    const { user: targetUser, reason } = suspendTarget;
+
+    try {
+      const userRef = doc(db, "users", targetUser.id);
+      await updateDoc(userRef, {
+        isBlocked: true,
+        blockedReason: reason.trim() || "የስቱዲዮ ደንብ መጣስ",
+        blockedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      setUsersList((prev) =>
+        prev.map((u) =>
+          u.id === targetUser.id
+            ? {
+                ...u,
+                isBlocked: true,
+                blockedReason: reason.trim() || "የስቱዲዮ ደንብ መጣስ",
+              }
+            : u
+        )
+      );
+
+      showToast(`ተጠቃሚ ${targetUser.email} በስኬት ታግዷል!`);
+      setSuspendTarget(null);
+    } catch (err: any) {
+      console.error("Failed to block user:", err);
+      setActionError("ተጠቃሚውን ማገድ አልተቻለም፦ " + (err?.message || ""));
+    }
+  };
+
   // Change Role
   const handleChangeRole = async (targetUser: UserProfile, newRole: "user" | "editor" | "admin") => {
     if (targetUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && newRole !== "admin") {
-      alert("የዋናው አድሚን ሚና መቀየር አይቻልም!");
+      setActionError("የዋናው አድሚን ሚና መቀየር አይቻልም!");
       return;
     }
 
@@ -175,20 +208,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   // Delete User Account
-  const handleDeleteUser = async (targetUser: UserProfile) => {
+  const handleDeleteUser = (targetUser: UserProfile) => {
     if (targetUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      alert("ዋናውን አድሚን መሰረዝ አይቻልም!");
+      setActionError("ዋናውን አድሚን መሰረዝ አይቻልም!");
       return;
     }
+    setDeleteTarget(targetUser);
+  };
 
-    if (!window.confirm(`የ ${targetUser.email} አካውንት እና ዳታ ሙሉ በሙሉ እንዲሰረዝ ይፈልጋሉ?`)) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await deleteDoc(doc(db, "users", targetUser.id));
-      setUsersList((prev) => prev.filter((u) => u.id !== targetUser.id));
-      showToast(`የ ${targetUser.email} አካውንት ተሰርዟል`);
+      await deleteDoc(doc(db, "users", deleteTarget.id));
+      setUsersList((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      showToast(`የ ${deleteTarget.email} አካውንት ተሰርዟል`);
+      setDeleteTarget(null);
     } catch (err: any) {
       setActionError("አካውንቱን መሰረዝ አልተቻለም፦ " + (err?.message || ""));
     }
@@ -200,7 +235,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const word = newBannedWord.trim().toLowerCase();
     if (!word) return;
     if (bannedWords.includes(word)) {
-      alert("ይህ ቃል አስቀድሞ ተመዝግቧል!");
+      setActionError("ይህ ቃል አስቀድሞ ተመዝግቧል!");
       return;
     }
     const updated = [...bannedWords, word];
@@ -782,6 +817,119 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             ዝጋ (Close)
           </button>
         </div>
+
+        {/* Suspend Confirmation Dialog */}
+        {suspendTarget && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-neutral-900 border border-red-800/80 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl shadow-red-950/60">
+              <div className="flex items-center gap-3 text-red-400">
+                <div className="w-9 h-9 rounded-xl bg-red-950 border border-red-700/60 flex items-center justify-center shrink-0">
+                  <Ban className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">ተጠቃሚን ማገድ (Suspend User)</h3>
+                  <p className="text-xs text-neutral-400 font-mono">
+                    {suspendTarget.user.displayName || suspendTarget.user.email}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-neutral-300 font-medium block">
+                  የእገዳ ምክንያት (Reason for Suspension)፦
+                </label>
+                <input
+                  type="text"
+                  value={suspendTarget.reason}
+                  onChange={(e) =>
+                    setSuspendTarget({
+                      ...suspendTarget,
+                      reason: e.target.value,
+                    })
+                  }
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-red-500"
+                  placeholder="የእገዳ ምክንያት ያስገቡ..."
+                />
+              </div>
+
+              {/* Quick Preset Reasons */}
+              <div className="space-y-1">
+                <span className="text-[10px] text-neutral-400 block font-mono">የተለመዱ ምክንያቶች፦</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "አላስፈላጊ ወይም የተከለከለ የዜና ይዘት በማሰራጨት",
+                    "የስቱዲዮ ደንብ መጣስ",
+                    "ያልተፈቀደ የይዘት አጠቃቀም",
+                  ].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setSuspendTarget({ ...suspendTarget, reason: r })}
+                      className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition-colors"
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => setSuspendTarget(null)}
+                  className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium cursor-pointer"
+                >
+                  ተመለስ (Cancel)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSuspend}
+                  className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors shadow-md shadow-red-900/50 cursor-pointer"
+                >
+                  ተጠቃሚውን እገድ (Confirm Suspend)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-neutral-900 border border-red-800/80 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl shadow-red-950/60">
+              <div className="flex items-center gap-3 text-red-400">
+                <div className="w-9 h-9 rounded-xl bg-red-950 border border-red-700/60 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">አካውንት መሰረዝ (Delete User)</h3>
+                  <p className="text-xs text-neutral-400 font-mono">{deleteTarget.email}</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-neutral-300 leading-relaxed">
+                የተጠቃሚው መለያና መረጃዎች ሙሉ በሙሉ ከደመናው ዳታቤዝ ይሰረዛሉ። ይህ ተግባር ወደ ኋላ ሊመለስ አይችልም።
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium cursor-pointer"
+                >
+                  ተመለስ (Cancel)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors shadow-md shadow-red-900/50 cursor-pointer"
+                >
+                  አዎ ሰርዝ (Confirm Delete)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

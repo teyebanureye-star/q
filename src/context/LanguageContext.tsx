@@ -28,7 +28,7 @@ const translations: Record<Language, Record<string, string>> = {
     heroOrgName: "ዜና አንባቢ ስቱዲዮው",
     heroTitle: "የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ስቱዲዮ",
     heroDescription:
-      "ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በፋና ጋዜጠኞች ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።",
+      "ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በዜና አንባቢ ስቱዲዮው ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።",
     heroHeadlineBtn: "ርዕስ አመንጭ",
 
     // Script Studio
@@ -40,7 +40,7 @@ const translations: Record<Language, Record<string, string>> = {
     copyBtn: "ጽሑፉን ኮፒ አድርግ",
     clearBtn: "አጽዳ",
     dictateBtn: "ድምፅ ተናገር",
-    polishBtn: "በፋና ስልት አሳምር",
+    polishBtn: "በዜና ስልት አሳምር",
     headlineGenBtn: "ርዕስ አመንጭ",
     chatBtn: "AI ረዳት",
     graphicsBtn: "የዜና ምስል",
@@ -70,7 +70,7 @@ const translations: Record<Language, Record<string, string>> = {
     exportWav: "የድምፅ ፋይል አውርድ (Export WAV)",
 
     // Anchors
-    anchorsTitle: "የፋና ከፍተኛ የዜና አንባቢዎች (Voice Anchors)",
+    anchorsTitle: "ከፍተኛ የዜና አንባቢዎች (Voice Anchors)",
     previewVoice: "ድምፁን አድምጥ",
     selectAnchor: "ምረጥ",
     activeBadge: "የተመረጠ",

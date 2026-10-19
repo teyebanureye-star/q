@@ -21,6 +21,9 @@ import {
   Volume2,
   BookOpen,
   Loader2,
+  Ban,
+  Bell,
+  ShieldAlert,
 } from "lucide-react";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
@@ -48,9 +51,46 @@ import { NewsGraphicsModal } from "./components/NewsGraphicsModal";
 import { Virtual3DStudioModal } from "./components/Virtual3DStudioModal";
 import { StudioAuthGate } from "./components/StudioAuthGate";
 import { useAuth } from "./context/AuthContext";
+import { useLanguage } from "./context/LanguageContext";
 
 export default function App() {
   const { user, profile, isAdmin, loading: authLoading } = useAuth();
+  const { language, t, toggleLanguage } = useLanguage();
+  const isEn = language === "en";
+
+  // System notice & Banned words managed by Admin
+  const [bannedWords, setBannedWords] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("studio_banned_words");
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return ["አላስፈላጊ ቃላት", "ጥላቻ", "የሀሰት መረጃ", "fake news", "scam"];
+  });
+
+  const [systemNotice, setSystemNotice] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("studio_system_notice");
+    } catch {}
+    return null;
+  });
+
+  const handleUpdateBannedWords = (words: string[]) => {
+    setBannedWords(words);
+    try {
+      localStorage.setItem("studio_banned_words", JSON.stringify(words));
+    } catch {}
+  };
+
+  const handleUpdateSystemNotice = (notice: string | null) => {
+    setSystemNotice(notice);
+    try {
+      if (notice) {
+        localStorage.setItem("studio_system_notice", notice);
+      } else {
+        localStorage.removeItem("studio_system_notice");
+      }
+    } catch {}
+  };
 
   // Navigation Section
   const [activeSection, setActiveSection] = useState<string>("studio");
@@ -133,7 +173,7 @@ export default function App() {
 
   // Select News Preset
   const handleSelectPreset = (preset: NewsScriptPreset) => {
-    setScript(preset.contentAmharic);
+    setScript(isEn ? (preset.contentEnglish || preset.contentAmharic) : preset.contentAmharic);
     const recAnchor = FANA_ANCHORS.find((a) => a.id === preset.recommendedAnchorId);
     if (recAnchor) {
       setSelectedAnchor(recAnchor);
@@ -144,7 +184,9 @@ export default function App() {
     });
     setNotification({
       type: "success",
-      text: `"${preset.headlineAmharic}" አብነት ተመርጧል`,
+      text: isEn
+        ? `Preset "${preset.headlineEnglish || preset.headlineAmharic}" selected`
+        : `"${preset.headlineAmharic}" አብነት ተመርጧል`,
     });
   };
 
@@ -235,21 +277,25 @@ export default function App() {
     studioAudio.init();
 
     try {
-      // 1. If anchor has pre-generated authentic broadcast audio file, play it directly!
-      if (anchor.sampleAudioUrl) {
+      // 1. If anchor has pre-generated authentic broadcast audio file (Amharic only), play it directly!
+      if (!isEn && anchor.sampleAudioUrl) {
         await studioAudio.playAudioUrl(anchor.sampleAudioUrl);
         setPreviewingAnchorId(null);
         return;
       }
 
-      // 2. Otherwise request neural TTS
+      // 2. Otherwise request neural TTS (supports English news audio generation)
+      const textToPreview = isEn ? (anchor.sampleTextEnglish || anchor.sampleText) : anchor.sampleText;
+      const styleDirective = isEn ? (anchor.styleDirectiveEnglish || anchor.styleDirective) : anchor.styleDirective;
+
       const res = await fetch("/api/tts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: anchor.sampleText,
+          text: textToPreview,
           voice: anchor.geminiVoice,
-          style: anchor.styleDirective,
+          style: styleDirective,
+          language: isEn ? "en" : "am",
         }),
       });
 
@@ -264,12 +310,16 @@ export default function App() {
 
       setNotification({
         type: "warning",
-        text: `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። በ Vercel ላይ GEMINI_API_KEY መግባቱን ያረጋግጡ።`,
+        text: isEn
+          ? `Could not synthesize audio for ${anchor.nameEnglish || anchor.nameAmharic}. Verify GEMINI_API_KEY.`
+          : `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። በ Vercel ላይ GEMINI_API_KEY መግባቱን ያረጋግጡ።`,
       });
     } catch {
       setNotification({
         type: "warning",
-        text: `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። እባክዎ የ Vercel Environment Variables ያረጋግጡ።`,
+        text: isEn
+          ? `Could not synthesize audio for ${anchor.nameEnglish || anchor.nameAmharic}. Check environment configuration.`
+          : `የ${anchor.nameAmharic} ድምፅ ማመንጨት አልተቻለም። እባክዎ የ Vercel Environment Variables ያረጋግጡ።`,
       });
     } finally {
       setPreviewingAnchorId(null);
@@ -282,20 +332,48 @@ export default function App() {
     if (!rawText) {
       setNotification({
         type: "warning",
-        text: "እባክዎ መጀመሪያ የሚነበበውን የዜና ጽሑፍ ያስገቡ",
+        text: isEn ? "Please enter a news script to broadcast" : "እባክዎ መጀመሪያ የሚነበበውን የዜና ጽሑፍ ያስገቡ",
+      });
+      return;
+    }
+
+    // Check if user account is suspended by admin!
+    if (profile?.isBlocked) {
+      setNotification({
+        type: "warning",
+        text: isEn
+          ? `Broadcasting blocked: Your account has been suspended by the administrator (${profile.blockedReason || "Policy violation"}).`
+          : `የእርስዎ መለያ በአድሚኑ ታግዷል፦ ${profile.blockedReason || "የስቱዲዮ ደንብ መጣስ"}። ድምፅ ማመንጨት አይቻልም።`,
+      });
+      return;
+    }
+
+    // Admin content moderation check
+    const lowerText = rawText.toLowerCase();
+    const violation = bannedWords.find((w) => lowerText.includes(w.toLowerCase()));
+    if (violation) {
+      setNotification({
+        type: "warning",
+        text: isEn
+          ? `Broadcasting blocked: Script contains prohibited term ("${violation}") flagged by admin moderation!`
+          : `ስርጭቱ ተከልክሏል፦ ጽሑፉ በአድሚኑ የተከለከለ ቃል («${violation}») ይዟል! እባክዎ ጽሑፉን ያርሙ።`,
       });
       return;
     }
 
     handleStop();
     setIsLoading(true);
-    setStatusMessage("የስቱዲዮ ድምፅ በፋና ጋዜጠኛ ስልት በማዘጋጀት ላይ...");
+    setStatusMessage(
+      isEn
+        ? "Synthesizing broadcast audio with neural anchor voice..."
+        : "የስቱዲዮ ድምፅ በዜና አንባቢ ስቱዲዮው ስልት በማዘጋጀት ላይ..."
+    );
 
     studioAudio.init();
     studioAudio.setMusicVolume(settings.musicVolume);
 
-    // Phonetically clean script with custom pronunciation dictionary
-    const spokenText = normalizeAmharicForSpeech(rawText, dictionary);
+    // Phonetically clean script with custom pronunciation dictionary (for Amharic)
+    const spokenText = isEn ? rawText : normalizeAmharicForSpeech(rawText, dictionary);
 
     try {
       // Start recording master mix for download export
@@ -303,7 +381,7 @@ export default function App() {
 
       // 1. Play intro stinger if enabled
       if (settings.includeIntroStinger && settings.introSoundEffect !== "none") {
-        setStatusMessage("🚨 የዜና መግቢያ ድምፅ ተፅዕኖ...");
+        setStatusMessage(isEn ? "🚨 Playing intro sound stinger..." : "🚨 የዜና መግቢያ ድምፅ ተፅዕኖ...");
         await studioAudio.playSoundEffect(settings.introSoundEffect);
       }
 
@@ -312,8 +390,8 @@ export default function App() {
         studioAudio.startMusicBed(settings.musicBed);
       }
 
-      // 3. Check if this is one of our anchor's sample scripts with pre-rendered studio audio
-      if (selectedAnchor.sampleAudioUrl && (spokenText.includes(selectedAnchor.nameAmharic) || rawText === selectedAnchor.sampleText)) {
+      // 3. Check if this is one of our anchor's sample scripts with pre-rendered studio audio (Amharic only)
+      if (!isEn && selectedAnchor.sampleAudioUrl && (spokenText.includes(selectedAnchor.nameAmharic) || rawText === selectedAnchor.sampleText)) {
         setStatusMessage(`🎙️ በ${selectedAnchor.nameAmharic} ስቱዲዮ ድምፅ በመነበብ ላይ ነው...`);
         setIsLoading(false);
         setIsPlaying(true);
@@ -323,7 +401,11 @@ export default function App() {
       }
 
       // 4. Request high-fidelity Gemini 3.8 Neural Audio from server
-      setStatusMessage(`🎙️ በ${selectedAnchor.nameAmharic} ድምፅ በመነበብ ላይ ነው...`);
+      setStatusMessage(
+        isEn
+          ? `🎙️ Broadcasting live with ${selectedAnchor.nameEnglish || selectedAnchor.nameAmharic}...`
+          : `🎙️ በ${selectedAnchor.nameAmharic} ድምፅ በመነበብ ላይ ነው...`
+      );
 
       const ttsResponse = await fetch("/api/tts/generate", {
         method: "POST",
@@ -331,7 +413,10 @@ export default function App() {
         body: JSON.stringify({
           text: spokenText,
           voice: selectedAnchor.geminiVoice,
-          style: selectedAnchor.styleDirective,
+          style: isEn
+            ? (selectedAnchor.styleDirectiveEnglish || selectedAnchor.styleDirective)
+            : selectedAnchor.styleDirective,
+          language: isEn ? "en" : "am",
         }),
       });
 
@@ -422,14 +507,17 @@ export default function App() {
     });
 
     try {
-      const spokenText = normalizeAmharicForSpeech(script);
+      const spokenText = isEn ? script : normalizeAmharicForSpeech(script, dictionary);
       const res = await fetch("/api/tts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: spokenText,
           voice: selectedAnchor.geminiVoice,
-          style: selectedAnchor.styleDirective,
+          style: isEn
+            ? (selectedAnchor.styleDirectiveEnglish || selectedAnchor.styleDirective)
+            : selectedAnchor.styleDirective,
+          language: isEn ? "en" : "am",
         }),
       });
 
@@ -468,7 +556,7 @@ export default function App() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 p-0.5 shadow-2xl shadow-red-900/50 flex items-center justify-center animate-pulse mb-4">
           <Radio className="w-7 h-7 text-white" />
         </div>
-        <h1 className="text-lg font-bold text-white tracking-wide">ፋና ድምፅ ዜና ስቱዲዮ</h1>
+        <h1 className="text-lg font-bold text-white tracking-wide">ዜና አንባቢ ስቱዲዮው</h1>
         <div className="text-xs text-neutral-400 mt-2 font-mono flex items-center gap-2">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
           <span>የስቱዲዮ መለያ እና ደህንነት በመረጋገጥ ላይ...</span>
@@ -499,6 +587,57 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Account Suspended Banner */}
+        {profile?.isBlocked && (
+          <div className="bg-red-950/90 border border-red-600/80 text-red-200 px-4 py-3.5 rounded-2xl text-xs flex items-center justify-between shadow-2xl shadow-red-950/60 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-red-900 border border-red-500/80 flex items-center justify-center shrink-0">
+                <Ban className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-red-100 text-sm">
+                  {isEn ? "Studio Account Suspended by Administrator" : "የስቱዲዮ መለያዎ በአድሚኑ ታግዷል (Account Suspended)"}
+                </p>
+                <p className="text-red-300 font-mono text-xs mt-0.5">
+                  {isEn
+                    ? `Reason: ${profile.blockedReason || "Violation of newsroom editorial standards"}`
+                    : `የእገዳ ምክንያት፦ ${profile.blockedReason || "የስቱዲዮ እና የዜና አዘጋጅ ደንብ መጣስ"}`}
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-red-900 text-red-200 font-mono text-[10px] font-bold border border-red-700 uppercase">
+              {isEn ? "Access Restricted" : "ተገድቧል"}
+            </span>
+          </div>
+        )}
+
+        {/* System Notice Banner (Broadcast from Admin) */}
+        {systemNotice && (
+          <div className="bg-gradient-to-r from-amber-950/80 via-neutral-900 to-amber-950/60 border border-amber-500/60 text-amber-200 px-4 py-3 rounded-2xl text-xs flex items-center justify-between shadow-xl animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-amber-400" />
+              </div>
+              <div>
+                <span className="font-bold text-amber-300 block text-xs">
+                  {isEn ? "Studio Notice (from Editorial Director)፦" : "የስቱዲዮ ማስታወቂያ (ከዋና አዘጋጅ/አድሚን)፦"}
+                </span>
+                <span className="text-neutral-200 text-xs">{systemNotice}</span>
+              </div>
+            </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => handleUpdateSystemNotice(null)}
+                className="text-[11px] text-neutral-400 hover:text-white px-2.5 py-1 rounded-lg bg-neutral-800 border border-neutral-700 transition-colors"
+                title="ማስታወቂያውን አስወግድ"
+              >
+                {isEn ? "Dismiss" : "አስወግድ"}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Notification Toast */}
         {notification && (
           <div className="bg-neutral-900 border border-amber-500/40 text-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-lg">
@@ -531,17 +670,17 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-600/90 text-white shadow-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                    FBC NEWSROOM STUDIO
+                    {isEn ? "NEWSROOM STUDIO" : "ዜና አንባቢ ስቱዲዮው"}
                   </span>
                   <span className="text-xs text-neutral-400 font-mono">
-                    ዜና አንባቢ ስቱዲዮው
+                    {isEn ? "News Anchor Studio" : "ዜና አንባቢ ስቱዲዮው"}
                   </span>
                 </div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white text-balance">
-                  የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ስቱዲዮ
+                  {isEn ? t("heroTitle") : "የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ስቱዲዮ"}
                 </h1>
                 <p className="text-xs text-neutral-300 leading-relaxed max-w-xl">
-                  ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በፋና ጋዜጠኞች ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።
+                  {isEn ? t("heroDescription") : "ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በዜና አንባቢ ስቱዲዮው ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።"}
                 </p>
               </div>
 
@@ -668,7 +807,7 @@ export default function App() {
                   <strong className="text-amber-300">"አጽህሮተ-ቃል አስተካክል"</strong> የሚለውን በመጫን አጽህሮተ-ቃላት (ጠ/ሚ፣ ዶ/ር) ወደ ሙሉ ቃል ይቀይሩ።
                 </li>
                 <li>
-                  ለዜናው የሚስማማውን የፋና ጋዜጠኛ (ለምሳሌ ዳዊት ወይም አስቴር) ይምረጡ።
+                  ለዜናው የሚስማማውን አንባቢ (ለምሳሌ ዳዊት ወይም አስቴር) ይምረጡ።
                 </li>
                 <li>
                   <strong className="text-emerald-400">"ድምፁን አውርድ (.WAV)"</strong> በማለት የዜናውን ድምፅ አውርደው በካፕከት (CapCut) ወይም ፕሪሚየር ቪዲዮ ይስሩበት!
@@ -682,7 +821,7 @@ export default function App() {
       {/* Footer */}
       <footer className="mt-auto border-t border-neutral-800 bg-neutral-950/80 py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
-          <p>© {new Date().getFullYear()} Fana Voice Studio · የኢትዮጵያ ሶሻል ሚዲያ ዜና ፕሮዳክሽን ስቱዲዮ</p>
+          <p>© {new Date().getFullYear()} ዜና አንባቢ ስቱዲዮው · News Audio Production Studio</p>
           <div className="flex items-center gap-4 text-neutral-400 font-medium">
             <span>ቲክቶክ (TikTok)</span>
             <span>·</span>
@@ -751,6 +890,10 @@ export default function App() {
       <AdminModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+        bannedWords={bannedWords}
+        onUpdateBannedWords={handleUpdateBannedWords}
+        systemNotice={systemNotice}
+        onUpdateSystemNotice={handleUpdateSystemNotice}
       />
 
       <HeadlineGeneratorModal

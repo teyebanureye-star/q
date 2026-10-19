@@ -113,14 +113,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div>
               <h2 className="text-base font-bold text-white">
                 {mode === "login"
-                  ? "ወደ ስቱዲዮው ይግቡ (Sign In)"
+                  ? "ግባ"
                   : mode === "register"
-                  ? "አዲስ አካውንት ይክፈቱ (Register)"
-                  : "የይለፍ ቃል መቀየሪያ (Reset Password)"}
+                  ? "ተመዝገብ"
+                  : "የይለፍ ቃል"}
               </h2>
-              <p className="text-[11px] text-neutral-400">
-                የዜና አንባቢ ስቱዲዮው አባልነት
-              </p>
             </div>
           </div>
 
@@ -147,7 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            ግባ (Login)
+            ግባ
           </button>
           <button
             type="button"
@@ -162,7 +159,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            ተመዝገብ (Sign Up)
+            ተመዝገብ
           </button>
           <button
             type="button"
@@ -177,7 +174,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : "text-neutral-400 hover:text-white"
             }`}
           >
-            ይለፍ ቃል (Reset)
+            የይለፍ ቃል
           </button>
         </div>
 
@@ -275,33 +272,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </>
             ) : mode === "login" ? (
               <>
-                <span>ግባ (Sign In)</span>
+                <span>ግባ</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             ) : mode === "register" ? (
               <>
-                <span>ተመዝገብ (Create Account)</span>
+                <span>ተመዝገብ</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             ) : (
               <>
-                <span>የይለፍ ቃል መቀየሪያ ላክ (Send Reset Link)</span>
+                <span>ሊንክ ላክ</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
-
-          {/* Quick Admin Credentials Shortcut */}
-          <div className="pt-2 border-t border-neutral-800">
-            <button
-              type="button"
-              onClick={fillAdminCredentials}
-              className="w-full py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center justify-center gap-2 transition-colors"
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>የአድሚን አካውንት ሙላ (Admin: workumesafint2@gmail.com)</span>
-            </button>
-          </div>
         </form>
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
   Info,
   Volume2,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 import { DictionaryEntry } from "../types/studio";
 import {
@@ -41,6 +42,7 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
   const [newNotes, setNewNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   if (!isOpen) return null;
 
@@ -119,11 +121,15 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
       showToast("❌ መዝገበ-ቃላቱን ወደ ነባሪ የመመለስ/ዳታ የማጥፋት ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው!");
       return;
     }
-    if (window.confirm("መዝገበ-ቃላቱን ወደ መጀመሪያው ነባሪ ሁኔታ መመለስ ይፈልጋሉ?")) {
-      const defaults = resetDictionaryToDefault();
-      setDictionary(defaults);
-      showToast("መዝገበ-ቃላቱ ወደ ነባሪው ሁኔታ ተመልሷል");
-    }
+    setShowResetConfirm(true);
+  };
+
+  const handleConfirmReset = () => {
+    const defaults = resetDictionaryToDefault();
+    setDictionary(defaults);
+    saveStoredDictionary(defaults);
+    showToast("መዝገበ-ቃላቱ ወደ ነባሪው ሁኔታ ተመልሷል");
+    setShowResetConfirm(false);
   };
 
   const filteredEntries = dictionary.filter(
@@ -145,25 +151,12 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  <span>የቃላት አነባበብ መዝገበ-ቃላት (Phonetic Dictionary)</span>
+                  <span>የቃላት አነባበብ መዝገበ-ቃላት</span>
                   <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                     {dictionary.length} ቃላት
                   </span>
                 </h2>
-                {isAdmin ? (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
-                    ADMIN • ሙሉ የመሰረዝ ፈቃድ
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-400 flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5 text-amber-400" />
-                    <span>ማጥፋት ለአድሚን ብቻ</span>
-                  </span>
-                )}
               </div>
-              <p className="text-xs text-neutral-400">
-                የድምፅ አንባቢው በስህተት የሚያነባቸውን ቃላት እዚህ ያርሙና ያስቀምጡ (ለምሳሌ «ሰቨር» ➔ «ሰበር»)
-              </p>
             </div>
           </div>
 
@@ -269,26 +262,43 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
               />
             </div>
 
-            {isAdmin ? (
+            {isAdmin && (
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-amber-300 transition-colors"
-                title="መዝገበ-ቃላቱን ወደ መጀመሪያው ሁኔታ መልስ"
+                className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-amber-300 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3 text-amber-400" />
-                <span>ነባሪዎችን መልስ (Reset Defaults)</span>
+                <span>ነባሪዎችን መልስ</span>
               </button>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500 cursor-not-allowed opacity-75"
-                title="ዳታ የማጥፋት እና ወደ ነባሪ የመመለስ ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው"
-              >
-                <Lock className="w-3 h-3 text-amber-500/70" />
-                <span>ነባሪዎችን መልስ (ለአድሚን ብቻ)</span>
-              </span>
             )}
           </div>
+
+          {/* Reset Confirmation Banner */}
+          {showResetConfirm && (
+            <div className="p-3 bg-red-950/40 border border-red-700/60 rounded-xl flex items-center justify-between gap-3 text-xs animate-in fade-in">
+              <div className="flex items-center gap-2 text-red-200">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>መዝገበ-ቃላቱን ወደ መጀመሪያው ነባሪ ሁኔታ መመለስ ይፈልጋሉ?</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  className="px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs transition-colors"
+                >
+                  ተመለስ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmReset}
+                  className="px-3 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors shadow-sm shadow-red-950"
+                >
+                  አዎ መልስ
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Dictionary Entries List */}
           <div className="space-y-2">
@@ -367,7 +377,6 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
                       ) : (
                         <span
                           className="p-1.5 text-neutral-600 cursor-not-allowed flex items-center justify-center"
-                          title="ዳታ የማጥፋት ፈቃድ ለአድሚን ብቻ የተፈቀደ ነው"
                         >
                           <Lock className="w-3.5 h-3.5 text-neutral-600" />
                         </span>
