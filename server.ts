@@ -71,10 +71,10 @@ app.post("/api/tts/generate", async (req, res) => {
       fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
     }
 
-    // Call Gemini 3.8 Flash Lite TTS with speech configuration
+    // Call Gemini 3.8 Flash TTS (flagship voice model with rich prosody & nuance)
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash-lite-tts",
+        model: "gemini-3.8-flash-tts",
         contents: [
           {
             role: "user",
@@ -100,10 +100,10 @@ app.post("/api/tts/generate", async (req, res) => {
         },
       });
       audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    } catch (liteErr: any) {
-      console.warn("Flash lite TTS failed, retrying with gemini-3.8-flash-tts:", liteErr?.message);
+    } catch (primaryErr: any) {
+      console.warn("Flash TTS primary failed, retrying with gemini-3.8-flash-lite-tts:", primaryErr?.message);
       const fallbackResponse = await ai.models.generateContent({
-        model: "gemini-3.8-flash-tts",
+        model: "gemini-3.8-flash-lite-tts",
         contents: [
           {
             role: "user",

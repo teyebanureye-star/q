@@ -4,7 +4,7 @@ export interface VoiceAnchor {
   nameEnglish: string;
   roleAmharic: string;
   roleEnglish?: string;
-  geminiVoice: "Fenrir" | "Kore" | "Charon" | "Puck" | "Zephyr";
+  geminiVoice: "Fenrir" | "Kore" | "Charon" | "Puck" | "Zephyr" | "Aoede";
   styleDirective: string;
   styleDirectiveEnglish?: string;
   gender: "male" | "female";

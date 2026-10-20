@@ -1,15 +1,11 @@
 /**
  * Studio Media Merger & Video Generator
- * Merges news graphics (image) and broadcast audio into a video (WebM/MP4)
+ * Merges news graphics (image) and broadcast audio into an HD video (WebM/MP4)
  * client-side using Canvas + AudioContext + MediaRecorder.
- * Also provides direct CapCut export launcher.
+ * Provides direct CapCut launcher that auto-downloads the recorded media and opens CapCut editor.
  */
 
 export const CAPCUT_EDITOR_URL = "https://www.capcut.com/editor";
-
-export function openCapCut() {
-  window.open(CAPCUT_EDITOR_URL, "_blank", "noopener,noreferrer");
-}
 
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -29,6 +25,59 @@ export function downloadUrl(url: string, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+/**
+ * Opens CapCut editor in a new tab.
+ * If media (video or audio blob/url) is provided, it automatically downloads the file
+ * to the user's device so they can immediately drag/upload it into CapCut timeline.
+ */
+export async function openCapCutWithMedia(media?: {
+  blob?: Blob | null;
+  url?: string | null;
+  filename?: string;
+  onDownloaded?: () => void;
+}) {
+  if (media?.blob) {
+    const ext = media.blob.type.includes("mp4")
+      ? "mp4"
+      : media.blob.type.includes("wav")
+      ? "wav"
+      : "webm";
+    const name = media.filename || `news_for_capcut_${Date.now()}.${ext}`;
+
+    // Try Web Share if on mobile devices where CapCut is an installed app
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.canShare &&
+      navigator.canShare({ files: [new File([media.blob], name, { type: media.blob.type })] })
+    ) {
+      try {
+        const file = new File([media.blob], name, { type: media.blob.type });
+        await navigator.share({
+          files: [file],
+          title: "News Video for CapCut",
+        });
+      } catch (err) {
+        // Fallback to direct download
+        downloadBlob(media.blob, name);
+      }
+    } else {
+      downloadBlob(media.blob, name);
+    }
+    if (media.onDownloaded) media.onDownloaded();
+  } else if (media?.url) {
+    const name = media.filename || `news_audio_for_capcut_${Date.now()}.wav`;
+    downloadUrl(media.url, name);
+    if (media.onDownloaded) media.onDownloaded();
+  }
+
+  // Open CapCut Web Editor in a new tab
+  window.open(CAPCUT_EDITOR_URL, "_blank", "noopener,noreferrer");
+}
+
+export function openCapCut() {
+  openCapCutWithMedia();
 }
 
 export interface MergeOptions {
@@ -69,12 +118,9 @@ export async function mergeImageAndAudioToVideo(
   // 2. Load Image
   const img = new Image();
   img.crossOrigin = "anonymous";
-  await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve) => {
     img.onload = () => resolve();
-    img.onerror = () => {
-      // Fallback: continue with gradient background if image load fails
-      resolve();
-    };
+    img.onerror = () => resolve();
     img.src = imageUrl;
   });
 
@@ -91,7 +137,6 @@ export async function mergeImageAndAudioToVideo(
   const audioSource = audioCtx.createBufferSource();
   audioSource.buffer = audioBuffer;
 
-  // Setup analyser for live audio waveform
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 128;
   const freqData = new Uint8Array(analyser.frequencyBinCount);
@@ -100,7 +145,7 @@ export async function mergeImageAndAudioToVideo(
   analyser.connect(dest);
 
   // 5. Setup MediaRecorder with combined stream
-  const canvasStream = canvas.captureStream(30); // 30 FPS
+  const canvasStream = canvas.captureStream(30);
   const combinedStream = new MediaStream([
     ...canvasStream.getVideoTracks(),
     ...dest.stream.getAudioTracks(),
@@ -144,18 +189,16 @@ export async function mergeImageAndAudioToVideo(
       reject(e);
     };
 
-    // Draw frame function
     const renderFrame = () => {
       const now = performance.now();
       const elapsed = (now - startTime) / 1000;
       const progress = Math.min(1, elapsed / duration);
       if (onProgress) onProgress(Math.round(progress * 100));
 
-      // Draw background image (cover fit)
+      // Draw background image
       if (img.complete && img.naturalWidth > 0) {
         ctx.drawImage(img, 0, 0, width, height);
       } else {
-        // Dark studio gradient
         const bgGrad = ctx.createLinearGradient(0, 0, width, height);
         bgGrad.addColorStop(0, "#0f172a");
         bgGrad.addColorStop(1, "#020617");
@@ -163,7 +206,7 @@ export async function mergeImageAndAudioToVideo(
         ctx.fillRect(0, 0, width, height);
       }
 
-      // Cinematic Vignette & Bottom gradient
+      // Vignette
       const grad = ctx.createLinearGradient(0, height * 0.4, 0, height);
       grad.addColorStop(0, "rgba(0, 0, 0, 0)");
       grad.addColorStop(1, "rgba(0, 0, 0, 0.85)");
@@ -191,7 +234,7 @@ export async function mergeImageAndAudioToVideo(
         ctx.fillText(`🎙️ ${anchorName}`, 202, 57);
       }
 
-      // Audio Waveform Visualizer Bar
+      // Audio Waveform
       analyser.getByteFrequencyData(freqData);
       const barCount = 32;
       const barWidth = 6;
@@ -228,7 +271,7 @@ export async function mergeImageAndAudioToVideo(
         ctx.fillText(trimmedHeadline, 65, height - 75);
       }
 
-      // Progress bar at very bottom
+      // Progress bar at bottom
       ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
       ctx.fillRect(0, height - 6, width, 6);
       ctx.fillStyle = "#f59e0b";

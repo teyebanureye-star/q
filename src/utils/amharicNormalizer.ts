@@ -1,7 +1,7 @@
 /**
  * Advanced Amharic Phonetic, Pronunciation Dictionary and News Normalizer
- * Eliminates robotic speech artifacts, expands abbreviations, converts numbers and decimals
- * to spoken Amharic words, handles dates, and structures authentic newsroom breathing cadence.
+ * Eliminates robotic speech artifacts, expands abbreviations, converts numbers, decimals,
+ * prefixes and loanwords to spoken Amharic, and structures authentic newsroom breathing cadence.
  */
 
 import { DictionaryEntry } from "../types/studio";
@@ -217,6 +217,78 @@ export const DEFAULT_DICTIONARY: DictionaryEntry[] = [
     enabled: true,
     isDefault: true,
   },
+  {
+    id: "def_27",
+    originalWord: "TikTok",
+    phoneticReplacement: "ቲክቶክ",
+    notes: "ሶሻል ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_28",
+    originalWord: "Telegram",
+    phoneticReplacement: "ቴሌግራም",
+    notes: "ሶሻል ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_29",
+    originalWord: "YouTube",
+    phoneticReplacement: "ዩቲዩብ",
+    notes: "ሶሻል ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_30",
+    originalWord: "Facebook",
+    phoneticReplacement: "ፌስቡክ",
+    notes: "ሶሻል ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_31",
+    originalWord: "Instagram",
+    phoneticReplacement: "ኢንስታግራም",
+    notes: "ሶሻል ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_32",
+    originalWord: "CapCut",
+    phoneticReplacement: "ካፕከት",
+    notes: "ቪዲዮ አዘጋጅ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_33",
+    originalWord: "Video",
+    phoneticReplacement: "ቪዲዮ",
+    notes: "ሚዲያ",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_34",
+    originalWord: "Live",
+    phoneticReplacement: "የቀጥታ",
+    notes: "ስርጭት",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "def_35",
+    originalWord: "Breaking",
+    phoneticReplacement: "ሰበር",
+    notes: "ዜና",
+    enabled: true,
+    isDefault: true,
+  },
 ];
 
 export function getStoredDictionary(): DictionaryEntry[] {
@@ -326,35 +398,38 @@ export function numberToAmharicWords(num: number): string {
 }
 
 /**
- * Replaces numbers (including comma-separated like 1,000 and decimals like 3.5) with spoken Amharic
+ * Replaces numbers (including attached Amharic prefixes, commas, and decimals) with spoken Amharic
  */
 function replaceDigitsWithAmharic(text: string): string {
-  // First handle decimals: e.g. "3.5" or "12.8"
-  let res = text.replace(/\b(\d+)\.(\d+)\b/g, (_match, intPart, decPart) => {
+  // First, handle numbers with decimals (e.g. 3.5, 12.8, በ3.5%)
+  let res = text.replace(/(በ|ከ|ለ|ወደ|እስከ|እንደ)?(\d+)\.(\d+)/g, (_match, prefix, intPart, decPart) => {
+    const p = prefix || "";
     const intNum = parseInt(intPart, 10);
     const decNum = parseInt(decPart, 10);
     if (!isNaN(intNum) && !isNaN(decNum)) {
-      return `${numberToAmharicWords(intNum)} ነጥብ ${numberToAmharicWords(decNum)}`;
+      return `${p}${numberToAmharicWords(intNum)} ነጥብ ${numberToAmharicWords(decNum)}`;
     }
     return _match;
   });
 
-  // Handle comma-separated numbers: e.g. "1,000" or "250,000"
-  res = res.replace(/\b(\d{1,3}(?:,\d{3})+)\b/g, (_match, group) => {
+  // Handle comma-separated numbers (e.g. 1,000, 250,000, በ1,000)
+  res = res.replace(/(በ|ከ|ለ|ወደ|እስከ|እንደ)?(\d{1,3}(?:,\d{3})+)/g, (_match, prefix, group) => {
+    const p = prefix || "";
     const cleanNum = parseInt(group.replace(/,/g, ""), 10);
     if (!isNaN(cleanNum) && cleanNum <= 999999999) {
-      return numberToAmharicWords(cleanNum);
+      return `${p}${numberToAmharicWords(cleanNum)}`;
     }
     return _match;
   });
 
-  // Handle standard integer digits
-  res = res.replace(/\b(\d{1,9})\b/g, (_match, digits) => {
+  // Handle standard integer numbers with optional Amharic prefixes (e.g. 2016, በ2016, ከ50)
+  res = res.replace(/(በ|ከ|ለ|ወደ|እስከ|እንደ)?(\d{1,9})/g, (_match, prefix, digits) => {
+    const p = prefix || "";
     const n = parseInt(digits, 10);
     if (!isNaN(n) && n <= 999999999) {
-      return numberToAmharicWords(n);
+      return `${p}${numberToAmharicWords(n)}`;
     }
-    return digits;
+    return _match;
   });
 
   return res;
@@ -367,8 +442,9 @@ function escapeRegex(str: string): string {
 /**
  * Normalizes Amharic news script for audio speech synthesis:
  * - Expands abbreviations & titles
+ * - Replaces English loanwords with clean phonetic Amharic
  * - Expands currencies, percentages, and measurement units
- * - Expands numbers and decimals to spoken Amharic words
+ * - Expands numbers and decimals (with prefixes) to spoken Amharic words
  * - Structures natural newsroom breathing pauses and punctuation
  */
 export function normalizeAmharicForSpeech(
@@ -378,10 +454,44 @@ export function normalizeAmharicForSpeech(
   if (!text) return "";
   let normalized = text;
 
-  // 1. Load dictionary (custom if provided, otherwise stored or default)
-  const dictionary = customDictionary || getStoredDictionary();
+  // 1. Common English media & tech terms to phonetic Amharic so TTS never stumbles
+  normalized = normalized
+    .replace(/\b(Breaking\s*News|breaking\s*news)\b/gi, "ሰበር ዜና፤")
+    .replace(/\b(Breaking|breaking)\b/gi, "ሰበር")
+    .replace(/\b(TikTok|tiktok)\b/gi, "ቲክቶክ")
+    .replace(/\b(Telegram|telegram)\b/gi, "ቴሌግራም")
+    .replace(/\b(YouTube|youtube)\b/gi, "ዩቲዩብ")
+    .replace(/\b(Facebook|facebook)\b/gi, "ፌስቡክ")
+    .replace(/\b(Instagram|instagram)\b/gi, "ኢንስታግራም")
+    .replace(/\b(CapCut|capcut|cabcut)\b/gi, "ካፕከት")
+    .replace(/\b(Live|live)\b/gi, "የቀጥታ")
+    .replace(/\b(Video|video)\b/gi, "ቪዲዮ")
+    .replace(/\b(Audio|audio)\b/gi, "ኦዲዮ")
+    .replace(/\b(Online|online)\b/gi, "ኦንላይን")
+    .replace(/\b(Website|website)\b/gi, "ድህረ-ገጽ")
+    .replace(/\b(PDF|pdf)\b/gi, "ፒዲኤፍ")
+    .replace(/\b(AI|ai)\b/g, "ሰው ሠራሽ አስተውሎት")
+    .replace(/\b(COVID-19|Covid-19|covid-19)\b/gi, "ኮቪድ አስራ ዘጠኝ")
+    .replace(/\b(COVID|Covid|covid)\b/gi, "ኮቪድ")
+    .replace(/\b(AU)\b/g, "የአፍሪካ ህብረት")
+    .replace(/\b(UN)\b/g, "የተባበሩት መንግስታት")
+    .replace(/\b(EU)\b/g, "የአውሮፓ ህብረት")
+    .replace(/\b(USA|US)\b/g, "አሜሪካ");
 
-  // Apply enabled dictionary entries
+  // 2. Units, percent, currencies
+  normalized = normalized
+    .replace(/%([0-9.,]+)/g, "$1 በመቶ")
+    .replace(/([0-9.,]+)%/g, "$1 በመቶ")
+    .replace(/([0-9.,]+)\s*ብር\b/g, "$1 የኢትዮጵያ ብር")
+    .replace(/([0-9.,]+)\s*ዶላር\b/g, "$1 የአሜሪካ ዶላር")
+    .replace(/(\$|USD)\s*([0-9.,]+)/gi, "$2 የአሜሪካ ዶላር")
+    .replace(/([0-9.,]+)\s*MW\b/gi, "$1 ሜጋ ዋት")
+    .replace(/([0-9.,]+)\s*ሜ\.ዋ\b/g, "$1 ሜጋ ዋት")
+    .replace(/([0-9.,]+)\s*ኪ\.ሜ\b/g, "$1 ኪሎሜትር")
+    .replace(/([0-9.,]+)\s*ኪ\.ግ\b/g, "$1 ኪሎግራም");
+
+  // 3. Custom & default dictionary replacements
+  const dictionary = customDictionary || getStoredDictionary();
   for (const entry of dictionary) {
     if (!entry.enabled || !entry.originalWord.trim()) continue;
     const escaped = escapeRegex(entry.originalWord.trim());
@@ -389,28 +499,16 @@ export function normalizeAmharicForSpeech(
     normalized = normalized.replace(regex, `$1${entry.phoneticReplacement}$2`);
   }
 
-  // 2. Units, percent, currencies
-  normalized = normalized
-    .replace(/\b%([0-9.,]+)\b/g, "$1 በመቶ")
-    .replace(/\b([0-9.,]+)%\b/g, "$1 በመቶ")
-    .replace(/\b([0-9.,]+)\s*ብር\b/g, "$1 የኢትዮጵያ ብር")
-    .replace(/\b([0-9.,]+)\s*ዶላር\b/g, "$1 የአሜሪካ ዶላር")
-    .replace(/\b(\$|USD)\s*([0-9.,]+)\b/gi, "$2 የአሜሪካ ዶላር")
-    .replace(/\b([0-9.,]+)\s*MW\b/gi, "$1 ሜጋ ዋት")
-    .replace(/\b([0-9.,]+)\s*ሜ\.ዋ\b/g, "$1 ሜጋ ዋት")
-    .replace(/\b([0-9.,]+)\s*ኪ\.ሜ\b/g, "$1 ኪሎሜትር")
-    .replace(/\b([0-9.,]+)\s*ኪ\.ግ\b/g, "$1 ኪሎግራም");
-
-  // 3. Convert numbers to spoken Amharic words
+  // 4. Convert numbers (including prefixed numbers like በ2016) to spoken Amharic words
   normalized = replaceDigitsWithAmharic(normalized);
 
-  // 4. Clean stutter-inducing multiple punctuation (e.g. "!!!" -> "።", "???" -> "？")
+  // 5. Clean stutter-inducing multiple punctuation (e.g. "!!!" -> "።", "???" -> "？")
   normalized = normalized
     .replace(/[!！]+/g, "። ")
     .replace(/[?？]+/g, "？ ")
     .replace(/\.{2,}/g, "... ");
 
-  // 5. Ensure clear newsroom breathing pauses around major Amharic punctuation
+  // 6. Ensure clear newsroom breathing pauses around major Amharic punctuation
   normalized = normalized
     .replace(/\s*።\s*/g, "። ")
     .replace(/\s*፤\s*/g, "፤ ")

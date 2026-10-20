@@ -13,7 +13,7 @@ import {
   CircleDot,
   Scissors,
 } from "lucide-react";
-import { downloadBlob, openCapCut } from "../utils/mediaMerger";
+import { downloadBlob, openCapCutWithMedia } from "../utils/mediaMerger";
 
 interface TeleprompterModalProps {
   isOpen: boolean;
@@ -305,9 +305,14 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {/* Direct CapCut Launcher Button */}
           <button
             type="button"
-            onClick={openCapCut}
+            onClick={() =>
+              openCapCutWithMedia({
+                blob: recordedVideoBlob,
+                filename: `teleprompter_news_video_${Date.now()}.webm`,
+              })
+            }
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-neutral-900 to-neutral-800 hover:from-neutral-800 hover:to-neutral-700 text-white border border-neutral-700 rounded-lg shadow-sm transition-all cursor-pointer"
-            title="CapCut"
+            title="CapCut ላይ አርትዕ"
           >
             <Scissors className="w-3.5 h-3.5 text-cyan-400" />
             <span>CapCut</span>
