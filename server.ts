@@ -67,7 +67,7 @@ app.post("/api/tts/generate", async (req, res) => {
       fullStyle = style ? `${englishBroadcastDirective} ${style}` : englishBroadcastDirective;
     } else {
       const amharicPhoneticDirective =
-        "Flawless standard Ethiopian Amharic broadcast pronunciation. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive bilabial plosive [b] (e.g. 'ሰበር' is strictly 'Se-ber' with a solid B, never 'Sever' or 'v'). Natural Addis Ababa newsroom cadence, proper gemination, and zero robotic hesitation. Authoritative news anchor reading Amharic news clearly with natural broadcast rhythm and cadence.";
+        "Flawless native Ethiopian national television prime-time news anchor from Addis Ababa. Deliver in warm, authoritative, human broadcast cadence with authentic Amharic gemination, expressive newsroom pacing, natural breathing pauses between sentences, and rich acoustic microphone presence. Strictly articulate the consonant 'b' (በ, ቡ, ቢ, ባ, ቤ, ብ, ቦ) as an assertive voiced bilabial plosive [b] (e.g. 'ሰበር' is articulated with a firm B, never 'v'). Zero robotic intonation, zero stutter, and zero synthetic hesitation. Deliver as an authentic, respected Ethiopian broadcaster.";
       fullStyle = style ? `${amharicPhoneticDirective} ${style}` : amharicPhoneticDirective;
     }
 

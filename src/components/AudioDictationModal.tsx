@@ -143,11 +143,8 @@ export const AudioDictationModal: React.FC<AudioDictationModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white">
-                የድምፅ ቅጂ ወደ ዜና ጽሑፍ (Speech-to-Text)
+                የድምፅ ቅጂ
               </h2>
-              <p className="text-xs text-neutral-400">
-                በማይክሮፎንዎ አማርኛ ይናገሩ፤ ሲስተሙ በቀጥታ ወደ ንጹህ የዜና ጽሑፍ ይቀይረዋል
-              </p>
             </div>
           </div>
 

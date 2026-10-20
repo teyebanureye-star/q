@@ -42,7 +42,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
               {language === "am" ? "ዜና አንባቢ ስቱዲዮው" : "News Anchor Studio"}
             </span>
             <span className="text-[10px] text-amber-400 font-mono tracking-wider block">
-              {language === "am" ? "FANA VOICE STUDIO" : "BROADCAST NEWS AUDIO"}
+              {language === "am" ? "NEWS AUDIO STUDIO" : "BROADCAST NEWS AUDIO"}
             </span>
           </div>
         </div>

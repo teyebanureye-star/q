@@ -33,14 +33,9 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
             <h2 className="text-base font-bold text-white flex items-center gap-2">
               <span>{isEn ? "Broadcast News Anchors" : "የዜና ጋዜጠኞች"}</span>
               <span className="text-[11px] font-mono text-amber-400 font-normal px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                {anchors.length} Anchors
+                {anchors.length}
               </span>
             </h2>
-            <p className="text-xs text-neutral-400">
-              {isEn
-                ? "Select a certified broadcast voice anchor for your news broadcast"
-                : "ዜናዎን የሚያነብልዎትን ጋዜጠኛ ይምረጡ"}
-            </p>
           </div>
         </div>
       </div>
@@ -102,10 +97,6 @@ export const AnchorSelector: React.FC<AnchorSelectorProps> = ({
 
                   <p className="text-xs text-amber-300/90 font-medium truncate mt-0.5">
                     {displayRole}
-                  </p>
-
-                  <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
-                    {displayDesc}
                   </p>
                 </div>
               </div>

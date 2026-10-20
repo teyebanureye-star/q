@@ -74,11 +74,8 @@ export const AiPolishModal: React.FC<AiPolishModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white">
-                የፋና ዜና አዘጋጅና ኤዲተር (AI News Polisher)
+                የዜና አዘጋጅ
               </h3>
-              <p className="text-xs text-neutral-400">
-                ያልተስተካከለ መረጃዎን ወደ ፕሮፌሽናል የፋና ብሮድካስት ዜና ይቀይሩ
-              </p>
             </div>
           </div>
 

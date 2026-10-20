@@ -139,15 +139,9 @@ export const NewsroomChatModal: React.FC<NewsroomChatModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-white">
-                  የፋና ዜና ክፍል AI ረዳት (AI Newsroom Editor)
+                  የዜና ክፍል AI ረዳት
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  Gemini 3.8
-                </span>
               </div>
-              <p className="text-xs text-neutral-400">
-                የዜና ምንጮችን ለማጣራት፣ ቃለ-መጠይቅ ለማዘጋጀት እና ጽሑፍ ለማሳመር
-              </p>
             </div>
           </div>
 

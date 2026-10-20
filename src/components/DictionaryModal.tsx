@@ -185,17 +185,14 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                 <Plus className="w-4 h-4" />
-                <span>አዲስ የአነባበብ ማረሚያ አክል (Add Word Rule)</span>
+                <span>አዲስ የአነባበብ ማረሚያ</span>
               </h3>
-              <span className="text-[10px] text-neutral-500">
-                በራስ-ሰር በስክሪፕቱ ውስጥ ይተካል
-              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
-                  የተሳሳተው ወይም የሚጻፈው ቃል (Original Word)
+                  የሚጻፈው ቃል
                 </label>
                 <input
                   type="text"
@@ -204,14 +201,14 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
                     setNewOriginal(e.target.value);
                     if (errorMsg) setErrorMsg(null);
                   }}
-                  placeholder="ምሳሌ፦ ሰቨር ወይም ጠ/ሚ"
+                  placeholder="ሰቨር / ጠ/ሚ"
                   className="w-full bg-neutral-900 border border-neutral-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-[11px] font-semibold text-neutral-300 mb-1">
-                  ትክክለኛው አነባበብ (Target Replacement)
+                  ትክክለኛው አነባበብ
                 </label>
                 <input
                   type="text"
@@ -220,7 +217,7 @@ export const DictionaryModal: React.FC<DictionaryModalProps> = ({
                     setNewReplacement(e.target.value);
                     if (errorMsg) setErrorMsg(null);
                   }}
-                  placeholder="ምሳሌ፦ ሰበር ወይም ጠቅላይ ሚኒስትር"
+                  placeholder="ሰበር / ጠቅላይ ሚኒስትር"
                   className="w-full bg-neutral-900 border border-neutral-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
                 />
               </div>

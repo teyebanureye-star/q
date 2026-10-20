@@ -1,5 +1,19 @@
-import React from "react";
-import { X, Download, Share2, Check, Video, MessageSquare, Play, Square } from "lucide-react";
+import React, { useState } from "react";
+import {
+  X,
+  Download,
+  Play,
+  Square,
+  Video,
+  Scissors,
+  Loader2,
+} from "lucide-react";
+import {
+  downloadBlob,
+  downloadUrl,
+  openCapCut,
+  mergeImageAndAudioToVideo,
+} from "../utils/mediaMerger";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -8,6 +22,7 @@ interface ExportModalProps {
   audioUrl: string | null;
   script: string;
   anchorName: string;
+  newsImageUrl?: string;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -17,28 +32,52 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   audioUrl,
   script,
   anchorName,
+  newsImageUrl = "/images/studio_hero.jpg",
 }) => {
-  const [copied, setCopied] = React.useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = React.useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isMergingVideo, setIsMergingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
   const audioPlayerRef = React.useRef<HTMLAudioElement | null>(null);
 
   if (!isOpen) return null;
 
-  const handleDownload = () => {
-    if (!audioUrl) return;
-    const a = document.createElement("a");
-    a.href = audioUrl;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    a.download = `fana_news_broadcast_${dateStr}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownloadAudio = () => {
+    const filename = `broadcast_audio_${Date.now()}.wav`;
+    if (audioBlob) {
+      downloadBlob(audioBlob, filename);
+    } else if (audioUrl) {
+      downloadUrl(audioUrl, filename);
+    }
   };
 
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(script);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCreateVideo = async () => {
+    setIsMergingVideo(true);
+    setVideoProgress(0);
+
+    try {
+      const headline = script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው";
+      const blob = await mergeImageAndAudioToVideo({
+        imageUrl: newsImageUrl,
+        audioBlob,
+        audioUrl: audioUrl || "/audio/sample_dawit_news.wav",
+        headline,
+        anchorName,
+        onProgress: (pct) => setVideoProgress(pct),
+      });
+
+      setExportedVideoBlob(blob);
+    } catch (err) {
+      console.warn("Video merge error:", err);
+    } finally {
+      setIsMergingVideo(false);
+    }
+  };
+
+  const handleDownloadVideo = () => {
+    if (!exportedVideoBlob) return;
+    const ext = exportedVideoBlob.type.includes("mp4") ? "mp4" : "webm";
+    downloadBlob(exportedVideoBlob, `broadcast_video_${Date.now()}.${ext}`);
   };
 
   const togglePreview = () => {
@@ -53,22 +92,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <Download className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white">
-                የተቀነባበረ የዜና ድምፅ (Export Broadcast Audio)
-              </h3>
-              <p className="text-xs text-neutral-400">
-                ለሶሻል ሚዲያ (TikTok, Telegram, YouTube) የተዘጋጀ ድምፅ
-              </p>
-            </div>
+            <h3 className="text-base font-bold text-white">ድምፅና ቪዲዮ አውርድ</h3>
           </div>
 
           <button
@@ -76,7 +108,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               if (audioPlayerRef.current) audioPlayerRef.current.pause();
               onClose();
             }}
-            className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
+            className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -93,18 +125,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">
-                  የዜና ድምፅ፡ {anchorName}
-                </p>
-                <p className="text-xs text-neutral-400 font-mono">
-                  ቅርጸት፦ 24kHz Studio Master (.WAV)
-                </p>
+                <p className="text-sm font-semibold text-white">{anchorName}</p>
+                <p className="text-xs text-amber-400/90 font-mono">24kHz Master WAV</p>
               </div>
 
               <button
                 type="button"
                 onClick={togglePreview}
-                className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-neutral-950 flex items-center justify-center transition-colors shadow-md"
+                className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-neutral-950 flex items-center justify-center transition-colors shadow-md cursor-pointer"
               >
                 {isPlayingAudio ? (
                   <Square className="w-4 h-4 fill-current" />
@@ -114,59 +142,65 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40"
-            >
-              <Download className="w-4 h-4" />
-              <span>የዜና ድምፁን አውርድ (.WAV ፋይል)</span>
-            </button>
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-1">
+              {/* Audio Download Button */}
+              <button
+                type="button"
+                onClick={handleDownloadAudio}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>ድምፅ አውርድ (.WAV)</span>
+              </button>
+
+              {/* Video Creation & Download */}
+              {exportedVideoBlob ? (
+                <button
+                  type="button"
+                  onClick={handleDownloadVideo}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>ቪዲዮ አውርድ (MP4)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCreateVideo}
+                  disabled={isMergingVideo}
+                  className="w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isMergingVideo ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>{videoProgress}% ቪዲዮ በማዘጋጀት ላይ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-4 h-4 text-amber-400" />
+                      <span>ምስልና ድምፅ ወደ ቪዲዮ ቀይር</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* 1-Click CapCut Button */}
+              <button
+                type="button"
+                onClick={openCapCut}
+                className="w-full py-2.5 bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 hover:from-neutral-700 hover:to-neutral-600 text-white border border-neutral-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              >
+                <Scissors className="w-4 h-4 text-cyan-400" />
+                <span>CapCut ክፈት</span>
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800 text-center py-6 text-neutral-400 text-xs">
-            እስካሁን ምንም ድምፅ አልተቀዳም። እባክዎ በስቱዲዮው ውስጥ ዜናውን ያጫውቱ።
+          <div className="bg-neutral-950 p-6 rounded-xl border border-neutral-800 text-center text-neutral-400 text-xs">
+            <p>ድምፅ አልተገኘም። እባክዎ በስቱዲዮው «አንብብ» የሚለውን ይጫኑ።</p>
           </div>
         )}
-
-        {/* Social Media Creator Tips */}
-        <div className="space-y-2 bg-neutral-950/60 p-3.5 rounded-lg border border-neutral-800/80">
-          <h4 className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-            <Video className="w-3.5 h-3.5" />
-            <span>ስቴዲዮ ለሌላቸው የሶሻል ሚዲያ ፈጣሪዎች አጠቃቀም፦</span>
-          </h4>
-          <ul className="text-xs text-neutral-300 space-y-1.5 list-disc list-inside">
-            <li>
-              የወረደውን የድምፅ ፋይል በቀጥታ <strong>CapCut</strong> ወይም <strong>Premiere</strong> ላይ በማስገባት ተዛማጅ ቪዲዮዎችን ጨምሩበት።
-            </li>
-            <li>
-              ለቴሌግራም ቻናል ቀጥታ በድምፅ (Voice Message) ወይም በፋይል ማጋራት ይችላሉ።
-            </li>
-            <li>
-              የቲክቶክ እና ዩቲዩብ ሾርትስ (Shorts) ቪዲዮ ለመስራት የቴሌፕሮምፕተር ሁነታን በመጠቀም ፊትዎን እየቀረጹ ማንበብ ይችላሉ።
-            </li>
-          </ul>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-1">
-          <button
-            type="button"
-            onClick={handleCopyScript}
-            className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
-            <span>{copied ? "ስክሪፕቱ ኮፒ ተደርጓል!" : "ስክሪፕቱን ኮፒ አድርግ"}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded-lg transition-colors"
-          >
-            ዝጋ
-          </button>
-        </div>
       </div>
     </div>
   );

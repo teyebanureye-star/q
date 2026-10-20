@@ -121,15 +121,9 @@ export const HeadlineGeneratorModal: React.FC<HeadlineGeneratorModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-white">
-                  AI የዜና ርዕስ አመንጭ (AI Headline Generator)
+                  የዜና ርዕስ አመንጭ
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  Gemini 3.8
-                </span>
               </div>
-              <p className="text-xs text-neutral-400">
-                ርዕሰ ጉዳይ ያስገቡ፤ ሲስተሙ 3 እጅግ ሳቢ እና ፕሮፌሽናል የፋና ዜና ርዕሶችን ያዘጋጅልዎታል
-              </p>
             </div>
           </div>
 
@@ -147,7 +141,7 @@ export const HeadlineGeneratorModal: React.FC<HeadlineGeneratorModalProps> = ({
           <form onSubmit={handleGenerate} className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                የዜናው ርዕሰ ጉዳይ ወይም ዋና ሀሳብ (News Topic / Event)
+                የዜናው ርዕሰ ጉዳይ
               </label>
               <div className="relative">
                 <input

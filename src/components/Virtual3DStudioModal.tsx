@@ -473,15 +473,12 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white tracking-wide">
-                  ፋና 3D ቨርቹዋል ዜና ስቱዲዮ (3D Virtual Newsroom)
+                  3D ቨርቹዋል ዜና ስቱዲዮ
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-600 text-white animate-pulse">
                   ON AIR
                 </span>
               </div>
-              <p className="text-[11px] text-neutral-400 font-sans">
-                አቅራቢ፦ {anchorName} · 4 የተለያዩ የብሮድካስት መድረኮች
-              </p>
             </div>
           </div>
 

@@ -24,7 +24,9 @@ import {
   Ban,
   Bell,
   ShieldAlert,
+  Scissors,
 } from "lucide-react";
+import { openCapCut } from "./utils/mediaMerger";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
 import {
@@ -679,9 +681,6 @@ export default function App() {
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-white text-balance">
                   {isEn ? t("heroTitle") : "የኢትዮጵያ ዜና እና ሶሻል ሚዲያ ድምፅ ስቱዲዮ"}
                 </h1>
-                <p className="text-xs text-neutral-300 leading-relaxed max-w-xl">
-                  {isEn ? t("heroDescription") : "ስቴዲዮ ለሌላቸው የቲክቶክ፣ ዩቲዩብ እና ቴሌግራም ዜና አዘጋጆች፤ የተፃፈውን ጽሑፍ በዜና አንባቢ ስቱዲዮው ተፈጥሯዊ የዜና አቀራረብ ስልት ያንብቡ።"}
-                </p>
               </div>
 
               {/* Utility Shortcuts */}
@@ -689,8 +688,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsHeadlineGeneratorOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
-                  title="በርዕሰ ጉዳይ ሳቢ የዜና ርዕስ በኤአይ አመንጭ"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>ርዕስ አመንጭ</span>
@@ -698,8 +696,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsDictionaryOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
-                  title="የቃላት አነባበብ መዝገበ-ቃላት"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>መዝገበ-ቃላት</span>
@@ -707,19 +704,34 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsTeleprompterOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-cyan-300 border border-cyan-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-cyan-300 border border-cyan-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
                   <Tv className="w-3.5 h-3.5" />
                   <span>ቴሌፕሮምፕተር</span>
                 </button>
                 <button
                   type="button"
+                  onClick={() => setIsGraphicsOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-purple-300 border border-purple-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
+                >
+                  <span>ምስልና ቪዲዮ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openCapCut}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-white border border-neutral-700 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer"
+                >
+                  <Scissors className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>CapCut</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleExportAudio}
                   disabled={isExporting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/60 text-xs font-semibold backdrop-blur-sm transition-all"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>ድምፅ አውርድ</span>
+                  <span>አውርድ</span>
                 </button>
               </div>
             </div>
@@ -792,28 +804,6 @@ export default function App() {
               onPreviewSample={handlePreviewSample}
               previewingAnchorId={previewingAnchorId}
             />
-
-            {/* Quick Tips Box for Social Media Creators */}
-            <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4 text-xs space-y-3">
-              <h3 className="font-bold text-amber-400 flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>ስቴዲዮ ለሌላቸው ፈጣሪዎች የዜና ዝግጅት መመሪያ፦</span>
-              </h3>
-              <ol className="text-neutral-300 space-y-2 list-decimal list-inside leading-relaxed">
-                <li>
-                  የዜናውን መረጃ በስክሪፕት ሳጥኑ ውስጥ ይጻፉ ወይም ከታች ካሉት አብነቶች አንዱን ይምረጡ።
-                </li>
-                <li>
-                  <strong className="text-amber-300">"አጽህሮተ-ቃል አስተካክል"</strong> የሚለውን በመጫን አጽህሮተ-ቃላት (ጠ/ሚ፣ ዶ/ር) ወደ ሙሉ ቃል ይቀይሩ።
-                </li>
-                <li>
-                  ለዜናው የሚስማማውን አንባቢ (ለምሳሌ ዳዊት ወይም አስቴር) ይምረጡ።
-                </li>
-                <li>
-                  <strong className="text-emerald-400">"ድምፁን አውርድ (.WAV)"</strong> በማለት የዜናውን ድምፅ አውርደው በካፕከት (CapCut) ወይም ፕሪሚየር ቪዲዮ ይስሩበት!
-                </li>
-              </ol>
-            </div>
           </div>
         </div>
       </main>
@@ -919,6 +909,9 @@ export default function App() {
         isOpen={isGraphicsOpen}
         onClose={() => setIsGraphicsOpen(false)}
         currentHeadline={script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው ዜና"}
+        audioBlob={exportedAudioBlob}
+        audioUrl={exportedAudioUrl || selectedAnchor.sampleAudioUrl}
+        anchorName={selectedAnchor.nameAmharic}
       />
 
       <Virtual3DStudioModal
