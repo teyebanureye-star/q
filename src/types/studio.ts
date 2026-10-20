@@ -35,6 +35,7 @@ export interface StudioSettings {
   musicBed: MusicBedType;
   musicVolume: number;     // 0 - 1
   autoDucking: boolean;    // auto reduce music when speaking
+  autoEq?: boolean;        // auto-blend voice & music frequencies for professional studio sound
   includeIntroStinger: boolean;
   introSoundEffect: SoundEffectType; // Selected Intro Sound Effect
   sfxVolume: number;       // Sound effect volume 0 - 1

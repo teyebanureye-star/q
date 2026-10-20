@@ -329,6 +329,18 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               {isEn ? "Auto-Ducking" : "ዳኪንግ"}
             </span>
           </label>
+
+          <label className="flex items-center gap-2 cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={settings.autoEq ?? true}
+              onChange={(e) => updateSettings({ autoEq: e.target.checked })}
+              className="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer"
+            />
+            <span className="text-xs text-neutral-300 font-medium">
+              Auto-EQ
+            </span>
+          </label>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">

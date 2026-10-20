@@ -18,6 +18,15 @@ class StudioAudioEngine {
   private voiceGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
 
+  // Auto-EQ broadcast processing nodes
+  private autoEqEnabled = true;
+  private voiceHighPass: BiquadFilterNode | null = null;
+  private voicePresence: BiquadFilterNode | null = null;
+  private voiceAir: BiquadFilterNode | null = null;
+  private voiceCompressor: DynamicsCompressorNode | null = null;
+  private musicNotch: BiquadFilterNode | null = null;
+  private musicBassShelf: BiquadFilterNode | null = null;
+
   // Background music scheduling
   private musicIntervalId: any = null;
   private activeMusicType: MusicBedType = "none";
@@ -66,10 +75,62 @@ class StudioAudioEngine {
     this.sfxGain = this.ctx.createGain();
     this.sfxGain.gain.setValueAtTime(this.baseSfxVolume, this.ctx.currentTime);
 
-    // Audio routing
-    this.musicGain.connect(this.masterGain);
-    this.voiceGain.connect(this.masterGain);
+    // Auto-EQ Node Setup: Voice Enhancement Chain
+    // 1. High-Pass Filter (Low-cut rumble below 90Hz)
+    this.voiceHighPass = this.ctx.createBiquadFilter();
+    this.voiceHighPass.type = "highpass";
+    this.voiceHighPass.frequency.setValueAtTime(this.autoEqEnabled ? 90 : 20, this.ctx.currentTime);
+    this.voiceHighPass.Q.setValueAtTime(0.707, this.ctx.currentTime);
+
+    // 2. Broadcast Presence Parametric Boost (3.2kHz for Amharic vocal clarity)
+    this.voicePresence = this.ctx.createBiquadFilter();
+    this.voicePresence.type = "peaking";
+    this.voicePresence.frequency.setValueAtTime(3200, this.ctx.currentTime);
+    this.voicePresence.gain.setValueAtTime(this.autoEqEnabled ? 3.0 : 0, this.ctx.currentTime);
+    this.voicePresence.Q.setValueAtTime(1.1, this.ctx.currentTime);
+
+    // 3. Studio Air High-Shelf (11kHz shine & condenser mic sheen)
+    this.voiceAir = this.ctx.createBiquadFilter();
+    this.voiceAir.type = "highshelf";
+    this.voiceAir.frequency.setValueAtTime(11000, this.ctx.currentTime);
+    this.voiceAir.gain.setValueAtTime(this.autoEqEnabled ? 2.0 : 0, this.ctx.currentTime);
+
+    // 4. Voice Dynamics Compressor (Studio radio broadcast leveling)
+    this.voiceCompressor = this.ctx.createDynamicsCompressor();
+    this.voiceCompressor.threshold.setValueAtTime(this.autoEqEnabled ? -18 : 0, this.ctx.currentTime);
+    this.voiceCompressor.knee.setValueAtTime(6, this.ctx.currentTime);
+    this.voiceCompressor.ratio.setValueAtTime(this.autoEqEnabled ? 3.5 : 1.0, this.ctx.currentTime);
+    this.voiceCompressor.attack.setValueAtTime(0.005, this.ctx.currentTime);
+    this.voiceCompressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+
+    // Auto-EQ Node Setup: Music Bed Frequency Carving (Prevents music from competing with vocal)
+    this.musicNotch = this.ctx.createBiquadFilter();
+    this.musicNotch.type = "peaking";
+    this.musicNotch.frequency.setValueAtTime(3000, this.ctx.currentTime);
+    this.musicNotch.gain.setValueAtTime(this.autoEqEnabled ? -4.0 : 0, this.ctx.currentTime);
+    this.musicNotch.Q.setValueAtTime(0.9, this.ctx.currentTime);
+
+    this.musicBassShelf = this.ctx.createBiquadFilter();
+    this.musicBassShelf.type = "lowshelf";
+    this.musicBassShelf.frequency.setValueAtTime(160, this.ctx.currentTime);
+    this.musicBassShelf.gain.setValueAtTime(this.autoEqEnabled ? -1.5 : 0, this.ctx.currentTime);
+
+    // Audio routing:
+    // Voice: voiceGain -> highPass -> presence -> air -> compressor -> masterGain
+    this.voiceGain.connect(this.voiceHighPass);
+    this.voiceHighPass.connect(this.voicePresence);
+    this.voicePresence.connect(this.voiceAir);
+    this.voiceAir.connect(this.voiceCompressor);
+    this.voiceCompressor.connect(this.masterGain);
+
+    // Music: musicGain -> musicNotch -> musicBassShelf -> masterGain
+    this.musicGain.connect(this.musicNotch);
+    this.musicNotch.connect(this.musicBassShelf);
+    this.musicBassShelf.connect(this.masterGain);
+
+    // SFX: sfxGain -> masterGain
     this.sfxGain.connect(this.masterGain);
+
     this.masterGain.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
 
@@ -86,6 +147,43 @@ class StudioAudioEngine {
 
   public getAnalyser(): AnalyserNode | null {
     return this.analyser;
+  }
+
+  /**
+   * Toggle broadcast Auto-EQ processing
+   * When enabled:
+   * - Voice: cuts sub-bass mud, boosts 3.2kHz vocal presence, adds 11kHz broadcast air, and applies studio leveling compression
+   * - Music: dynamically carves a 3kHz notch and tames low rumble so background beds never clash with the newsreader
+   */
+  public setAutoEq(enabled: boolean) {
+    this.autoEqEnabled = enabled;
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const ramp = 0.08;
+
+    if (this.voiceHighPass) {
+      this.voiceHighPass.frequency.setTargetAtTime(enabled ? 90 : 20, now, ramp);
+    }
+    if (this.voicePresence) {
+      this.voicePresence.gain.setTargetAtTime(enabled ? 3.0 : 0, now, ramp);
+    }
+    if (this.voiceAir) {
+      this.voiceAir.gain.setTargetAtTime(enabled ? 2.0 : 0, now, ramp);
+    }
+    if (this.voiceCompressor) {
+      this.voiceCompressor.threshold.setTargetAtTime(enabled ? -18 : 0, now, ramp);
+      this.voiceCompressor.ratio.setTargetAtTime(enabled ? 3.5 : 1.0, now, ramp);
+    }
+    if (this.musicNotch) {
+      this.musicNotch.gain.setTargetAtTime(enabled ? -4.0 : 0, now, ramp);
+    }
+    if (this.musicBassShelf) {
+      this.musicBassShelf.gain.setTargetAtTime(enabled ? -1.5 : 0, now, ramp);
+    }
+  }
+
+  public getAutoEq(): boolean {
+    return this.autoEqEnabled;
   }
 
   public setMusicVolume(volume: number) {

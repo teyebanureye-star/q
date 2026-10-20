@@ -107,6 +107,7 @@ export default function App() {
     musicBed: "breaking",
     musicVolume: 0.35,
     autoDucking: true,
+    autoEq: true,
     includeIntroStinger: true,
     introSoundEffect: "breaking_alert",
     sfxVolume: 0.85,
@@ -154,6 +155,9 @@ export default function App() {
       }
       if (newPartial.sfxVolume !== undefined) {
         studioAudio.setSfxVolume(newPartial.sfxVolume);
+      }
+      if (newPartial.autoEq !== undefined) {
+        studioAudio.setAutoEq(newPartial.autoEq);
       }
       return updated;
     });
@@ -373,6 +377,7 @@ export default function App() {
 
     studioAudio.init();
     studioAudio.setMusicVolume(settings.musicVolume);
+    studioAudio.setAutoEq(settings.autoEq ?? true);
 
     // Phonetically clean script with custom pronunciation dictionary (for Amharic)
     const spokenText = isEn ? rawText : normalizeAmharicForSpeech(rawText, dictionary);
