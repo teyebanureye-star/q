@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   X,
@@ -49,11 +49,29 @@ function drawRoundedRect(
   }
 }
 
-// Composites the 3D WebGL Canvas with high-fidelity broadcast news overlay (ON AIR + News Ticker + Anchor)
+// Splits full news script into distinct broadcast sentences
+function parseNewsSentences(scriptText: string): string[] {
+  if (!scriptText || !scriptText.trim()) {
+    return ["የፋና ብሮድካስቲንግ የቀጥታ ዜና ስርጭት"];
+  }
+  const rawParts = scriptText
+    .split(/(?<=[።\n!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  if (rawParts.length === 0) {
+    return [scriptText.trim()];
+  }
+  return rawParts;
+}
+
+// Composites the 3D WebGL Canvas with live synchronized TV broadcast news graphics (ON AIR + Active Sentence Subtitles + Continuous Full-Text News Crawler)
 function createBroadcastCompositeStream(
   webglCanvas: HTMLCanvasElement,
-  headline: string,
-  anchor: string
+  fullScript: string,
+  anchor: string,
+  getElapsedSeconds: () => number,
+  getTotalDuration: () => number
 ): { stream: MediaStream; stop: () => void } {
   const width = 1280;
   const height = 720;
@@ -62,6 +80,15 @@ function createBroadcastCompositeStream(
   compCanvas.height = height;
   const ctx = compCanvas.getContext("2d")!;
 
+  const sentences = parseNewsSentences(fullScript);
+  const cleanScriptTicker = sentences.join("   •   ");
+  const fullCrawlerText = `  •  ሰበር ዜና ► ${cleanScriptTicker}   •   ፋና ብሮድካስቲንግ ኮርፖሬት • ${anchor || "የዜና አንባቢ"}   `;
+
+  ctx.font = 'bold 14px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+  const crawlerMetrics = ctx.measureText(fullCrawlerText);
+  const crawlerTotalWidth = Math.max(width * 2, crawlerMetrics.width);
+
+  let crawlerX = width;
   let animFrameId: number;
   let active = true;
 
@@ -75,6 +102,12 @@ function createBroadcastCompositeStream(
       // ignore
     }
 
+    const elapsed = getElapsedSeconds();
+    const totalDuration = Math.max(6, getTotalDuration());
+    const progress = Math.min(0.999, Math.max(0, elapsed / totalDuration));
+    const sentenceIndex = Math.min(sentences.length - 1, Math.floor(progress * sentences.length));
+    const currentSentence = sentences[sentenceIndex] || sentences[0];
+
     // 2. Top-Left ON AIR Live Badge
     ctx.fillStyle = "rgba(220, 38, 38, 0.95)";
     drawRoundedRect(ctx, 32, 28, 115, 34, 8);
@@ -85,47 +118,74 @@ function createBroadcastCompositeStream(
 
     // 3. Top-Right 3D Studio Badge
     ctx.fillStyle = "rgba(10, 10, 15, 0.88)";
-    drawRoundedRect(ctx, width - 250, 28, 218, 34, 8);
+    drawRoundedRect(ctx, width - 260, 28, 228, 34, 8);
     ctx.fill();
     ctx.strokeStyle = "rgba(245, 158, 11, 0.6)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.fillStyle = "#f59e0b";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("3D ቨርቹዋል ዜና ስቱዲዮ", width - 232, 50);
+    ctx.font = 'bold 12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+    ctx.fillText("3D ቨርቹዋል ዜና ስቱዲዮ", width - 242, 50);
 
-    // 4. Lower-Third Headline & Anchor Banner
-    const barHeight = 84;
-    const barY = height - barHeight - 36;
+    // 4. Lower-Third Headline & Active Sentence Subtitle Banner (Advances as anchor reads)
+    const barHeight = 112;
+    const barY = height - barHeight - 26;
 
     // Card background
-    ctx.fillStyle = "rgba(10, 10, 12, 0.90)";
+    ctx.fillStyle = "rgba(10, 10, 14, 0.92)";
     drawRoundedRect(ctx, 36, barY, width - 72, barHeight, 14);
     ctx.fill();
-    ctx.strokeStyle = "rgba(245, 158, 11, 0.7)";
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.75)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Amber Tag
-    ctx.fillStyle = "#f59e0b";
-    drawRoundedRect(ctx, 50, barY + 12, 112, 26, 6);
+    // Row 1: News Label & Anchor & Section counter
+    ctx.fillStyle = "#dc2626";
+    drawRoundedRect(ctx, 48, barY + 10, 106, 24, 6);
     ctx.fill();
-    ctx.fillStyle = "#0a0a0a";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText("በርዕሰ አንቀጽ", 63, barY + 29);
-
-    // Headline Text
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 18px sans-serif";
-    const cleanHeadline = headline || "የፋና ብሮድካስቲንግ የቀጥታ ዜና ስርጭት";
-    const displayHeadline = cleanHeadline.length > 70 ? cleanHeadline.substring(0, 67) + "..." : cleanHeadline;
-    ctx.fillText(displayHeadline, 176, barY + 31);
+    ctx.font = 'bold 11px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+    ctx.fillText("🔴 የቀጥታ ንባብ", 58, barY + 26);
 
-    // Subtitle / Anchor Tag
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = 'bold 12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+    ctx.fillText(`ፋና ብሮድካስቲንግ • ${anchor || "የዜና አንባቢ"}`, 166, barY + 27);
+
     ctx.fillStyle = "#94a3b8";
-    ctx.font = "12px sans-serif";
-    ctx.fillText(`ፋና ብሮድካስቲንግ ኮርፖሬት • ${anchor || "የዜና አንባቢ"}`, 50, barY + 65);
+    ctx.font = "11px monospace";
+    ctx.fillText(`ክፍል [ ${sentenceIndex + 1} / ${sentences.length} ]`, width - 175, barY + 27);
+
+    // Row 2: Active Sentence being read by anchor (full news text advances along with anchor reading)
+    ctx.fillStyle = "#ffffff";
+    ctx.font = 'bold 17px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+    const displaySentence = currentSentence.length > 90 ? currentSentence.substring(0, 87) + "..." : currentSentence;
+    ctx.fillText(displaySentence, 50, barY + 62);
+
+    // Row 3: Continuous Crawler Ribbon at bottom with FULL text
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.35)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(48, barY + 79);
+    ctx.lineTo(width - 48, barY + 79);
+    ctx.stroke();
+
+    // Clip crawler inside banner width
+    ctx.save();
+    ctx.beginPath();
+    drawRoundedRect(ctx, 48, barY + 81, width - 96, 26, 4);
+    ctx.clip();
+
+    crawlerX -= 2.2;
+    if (crawlerX < -crawlerTotalWidth) {
+      crawlerX = width - 96;
+    }
+
+    ctx.fillStyle = "#fde68a";
+    ctx.font = '13px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+    ctx.fillText(fullCrawlerText, crawlerX, barY + 99);
+    ctx.fillText(fullCrawlerText, crawlerX + crawlerTotalWidth + 60, barY + 99);
+    ctx.restore();
 
     animFrameId = requestAnimationFrame(draw);
   };
