@@ -108,12 +108,21 @@ export const NewsroomChatModal: React.FC<NewsroomChatModalProps> = ({
       ]);
     } catch (err: any) {
       console.warn("Chat error:", err);
+      const lower = text.toLowerCase();
+      let fallback = "";
+      if (lower.includes("መንጠቆ") || lower.includes("ቲክቶክ") || lower.includes("ሾርትስ")) {
+        fallback = `🎯 **ለሶሻል ሚዲያ (ቲክቶክ/ዩቲዩብ) 3 ማራኪ የዜና መንጠቆዎች፦**\n1. "ይህን ያውቁ ኖሯል? በዛሬው ዕለት የወጣው አስደናቂ መረጃ..."\n2. "ሰበር መረጃ! በመላው ኢትዮጵያ ከፍተኛ መነጋገሪያ የሆነው ዜና..."\n3. "ከጥቂት ደቂቃዎች በፊት የደረሰን አዲስ መረጃ እነሆ..."\n\n📌 *ምክር፦ በመጀመሪያዎቹ 3 ሰከንዶች ውስጥ ዋናውን ነጥብ በመናገር ተመልካቹን ያስሩ!*`;
+      } else if (lower.includes("ጥያቄ") || lower.includes("ቃለ-መጠይቅ")) {
+        fallback = `🎙️ **ለዚህ ዜና የሚሆኑ 3 ቁልፍ የቃለ-መጠይቅ ጥያቄዎች፦**\n1. "ይህ ውሳኔ በማህበረሰቡ እና በኢኮኖሚው ላይ ምን ተጨባጭ ለውጥ ያመጣል?"\n2. "የተያዘው የጊዜ ሰሌዳ እና አፈፃፀሙ ምን ይመስላል?"\n3. "ለህዝብ የሚተላለፈው ዋና መልዕክትና ጥንቃቄ ምንድን ነው?"`;
+      } else {
+        fallback = `የዜና ስክሪፕትዎን በዜና አንባቢ ስቱዲዮው የአቀራረብ ስልት ለማሳመር፦\n1. ዓረፍተ-ነገሮቹን አጫጭር እና ግልጽ ያድርጓቸው።\n2. አኃዞችን እና አጽህሮተ-ቃላትን በአማርኛ ፊደል ሙሉ አድርገው ይጻፉ።\n3. በስክሪፕት ሳጥኑ ስር ያለውን **«የዜና አዘጋጅ»** ወይም **«ርዕስ አመንጭ»** ቁልፍ በመጫን ጽሑፉን ማበልጸግ ይችላሉ።`;
+      }
       setMessages((prev) => [
         ...prev,
         {
-          id: `bot_err_${Date.now()}`,
+          id: `bot_fallback_${Date.now()}`,
           role: "assistant",
-          text: "ይቅርታ፣ በግንኙነት መቆራረጥ ምክንያት ምላሽ ማግኘት አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+          text: fallback,
         },
       ]);
     } finally {

@@ -6,12 +6,19 @@ import {
   Lightbulb,
   Radio,
   Sparkles,
-  Layers,
   Flame,
   Globe,
   Coffee,
-  RotateCw,
+  Play,
+  Square,
+  Video,
+  Download,
+  Scissors,
+  CircleDot,
+  RotateCcw,
+  Volume2,
 } from "lucide-react";
+import { downloadBlob, openCapCutWithMedia } from "../utils/mediaMerger";
 
 export type StudioSetType = "prime" | "breaking" | "cyber" | "morning";
 
@@ -20,6 +27,12 @@ interface Virtual3DStudioModalProps {
   onClose: () => void;
   activeHeadline: string;
   anchorName: string;
+  audioBlob?: Blob | null;
+  audioUrl?: string | null;
+  script?: string;
+  isPlaying?: boolean;
+  onPlayBroadcast?: () => void;
+  onStopBroadcast?: () => void;
 }
 
 const STUDIO_SETS: {
@@ -32,7 +45,7 @@ const STUDIO_SETS: {
 }[] = [
   {
     id: "prime",
-    labelAmharic: "🏛️ ፋና ዋና ዜና",
+    labelAmharic: "🏛️ ዋና ዜና",
     tag: "PRIME",
     desc: "የተከበረ የዋና ዜና መድረክ ከሮያል ሰማያዊ ጀርባ ጋር",
     icon: Sparkles,
@@ -69,11 +82,23 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   onClose,
   activeHeadline,
   anchorName,
+  audioBlob,
+  audioUrl,
+  script,
+  isPlaying,
+  onPlayBroadcast,
+  onStopBroadcast,
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [studioSet, setStudioSet] = useState<StudioSetType>("prime");
   const [lightingMode, setLightingMode] = useState<"day" | "dramatic" | "night">("day");
-  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "overhead">("wide");
+  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "overhead" | "auto">("auto");
+
+  // Audio & Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [isLocalAudioPlaying, setIsLocalAudioPlaying] = useState(false);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -86,9 +111,22 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const keyLightRef = useRef<THREE.DirectionalLight | null>(null);
   const onAirLightRef = useRef<THREE.PointLight | null>(null);
 
+  // Recording Refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<any>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Format seconds to mm:ss
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   // Build the 3D Set objects based on selected theme
   const buildStudioSet = (scene: THREE.Scene, theme: StudioSetType) => {
-    // Remove previous set group if exists
     if (setGroupRef.current) {
       scene.remove(setGroupRef.current);
       setGroupRef.current.traverse((child) => {
@@ -102,15 +140,12 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     const setGroup = new THREE.Group();
     setGroupRef.current = setGroup;
 
-    // Materials based on theme
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.85, roughness: 0.25 });
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.1 });
 
     if (theme === "prime") {
-      // 1. PRIME BROADCAST STAGE
       scene.background = new THREE.Color(0x0a0c14);
 
-      // Curved Executive Desk
       const deskTopGeo = new THREE.CylinderGeometry(2.4, 2.6, 0.15, 32, 1, false, 0, Math.PI);
       const deskTopMat = new THREE.MeshStandardMaterial({ color: 0x1e1b18, roughness: 0.3, metalness: 0.6 });
       const deskTop = new THREE.Mesh(deskTopGeo, deskTopMat);
@@ -118,14 +153,12 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       deskTop.castShadow = true;
       setGroup.add(deskTop);
 
-      // Glowing Gold Trim
       const trimGeo = new THREE.CylinderGeometry(2.42, 2.42, 0.05, 32, 1, false, 0, Math.PI);
       const trimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.6 });
       const trim = new THREE.Mesh(trimGeo, trimMat);
       trim.position.set(0, 1.15, 0);
       setGroup.add(trim);
 
-      // Curved Blue Royal Cyclorama Wall
       const wallGeo = new THREE.CylinderGeometry(7.5, 7.5, 4.8, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5);
       const wallMat = new THREE.MeshStandardMaterial({
         color: 0x0f172a,
@@ -139,161 +172,127 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       wall.position.set(0, 2.4, 0);
       setGroup.add(wall);
 
-      // Radial Gold Floor Ring
-      const ringGeo = new THREE.RingGeometry(2.2, 5.8, 64);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.15 });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.01;
-      setGroup.add(ring);
+      const gridHelper = new THREE.PolarGridHelper(7.5, 8, 8, 64, 0x3b82f6, 0x1e293b);
+      gridHelper.position.set(0, 0.01, 0);
+      setGroup.add(gridHelper);
     } else if (theme === "breaking") {
-      // 2. BREAKING NEWS RED ALERT ROOM
-      scene.background = new THREE.Color(0x180505);
+      scene.background = new THREE.Color(0x160505);
 
-      // Angular Hexagonal High-Tech Desk
-      const deskGeo = new THREE.CylinderGeometry(2.5, 2.8, 0.2, 6);
-      const deskMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 });
-      const desk = new THREE.Mesh(deskGeo, deskMat);
-      desk.position.set(0, 1.1, 0);
-      desk.castShadow = true;
-      setGroup.add(desk);
-
-      // Red Glowing Edge
-      const edgeGeo = new THREE.CylinderGeometry(2.52, 2.52, 0.05, 6);
-      const edgeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 1.0 });
-      const edge = new THREE.Mesh(edgeGeo, edgeMat);
-      edge.position.set(0, 1.16, 0);
-      setGroup.add(edge);
-
-      // Dual Warning Beacon Pillars
-      [-3.2, 3.2].forEach((x) => {
-        const pillarGeo = new THREE.CylinderGeometry(0.12, 0.12, 4.5, 16);
-        const pillar = new THREE.Mesh(pillarGeo, metalMat);
-        pillar.position.set(x, 2.25, -2);
-
-        const beaconTop = new THREE.Mesh(
-          new THREE.SphereGeometry(0.2, 16, 16),
-          new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
-        beaconTop.position.set(x, 4.4, -2);
-        setGroup.add(pillar);
-        setGroup.add(beaconTop);
+      const deskTopGeo = new THREE.BoxGeometry(4.2, 0.15, 1.6);
+      const deskTopMat = new THREE.MeshStandardMaterial({
+        color: 0x1c1917,
+        roughness: 0.2,
+        metalness: 0.8,
       });
+      const deskTop = new THREE.Mesh(deskTopGeo, deskTopMat);
+      deskTop.position.set(0, 1.1, 0);
+      setGroup.add(deskTop);
 
-      // Red Segmented Back Wall
-      const wallGeo = new THREE.CylinderGeometry(7, 7, 4.5, 32, 1, true, Math.PI * 0.75, Math.PI * 0.5);
+      const neonGeo = new THREE.BoxGeometry(4.3, 0.04, 1.65);
+      const neonMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 1.2 });
+      const neon = new THREE.Mesh(neonGeo, neonMat);
+      neon.position.set(0, 1.18, 0);
+      setGroup.add(neon);
+
+      const wallGeo = new THREE.CylinderGeometry(7.5, 7.5, 4.8, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5);
       const wallMat = new THREE.MeshStandardMaterial({
         color: 0x220505,
-        roughness: 0.3,
-        metalness: 0.7,
+        roughness: 0.5,
         side: THREE.BackSide,
         emissive: 0x7f1d1d,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.35,
       });
       const wall = new THREE.Mesh(wallGeo, wallMat);
-      wall.position.set(0, 2.25, 0);
+      wall.position.set(0, 2.4, 0);
       setGroup.add(wall);
+
+      const gridHelper = new THREE.GridHelper(16, 20, 0xef4444, 0x450a0a);
+      gridHelper.position.set(0, 0.01, 0);
+      setGroup.add(gridHelper);
     } else if (theme === "cyber") {
-      // 3. GLOBAL CYBER & DIGITAL NEWSROOM
-      scene.background = new THREE.Color(0x030712);
+      scene.background = new THREE.Color(0x020617);
 
-      // Transparent Holographic Glass Desk with Cyan Glow
-      const glassGeo = new THREE.CylinderGeometry(2.4, 2.4, 0.12, 32, 1, false, 0, Math.PI);
-      const glassMat = new THREE.MeshStandardMaterial({
-        color: 0x06b6d4,
-        roughness: 0.1,
-        metalness: 0.9,
-        transparent: true,
-        opacity: 0.75,
-        emissive: 0x0891b2,
-        emissiveIntensity: 0.3,
-      });
-      const glassDesk = new THREE.Mesh(glassGeo, glassMat);
-      glassDesk.position.set(0, 1.1, 0);
-      setGroup.add(glassDesk);
-
-      // Floating 3D Wireframe World Globe above desk center
-      const globeGeo = new THREE.SphereGeometry(0.85, 24, 24);
+      const globeGeo = new THREE.SphereGeometry(1.6, 24, 24);
       const globeMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
+        color: 0x06b6d4,
         wireframe: true,
-        emissive: 0x0284c7,
+        emissive: 0x0891b2,
         emissiveIntensity: 0.8,
       });
       const globe = new THREE.Mesh(globeGeo, globeMat);
-      globe.position.set(0, 2.6, -0.6);
-      setGroup.add(globe);
+      globe.position.set(0, 3.2, -1.8);
       globeMeshRef.current = globe;
+      setGroup.add(globe);
 
-      // Cyan Grid Rings on Floor
-      [3, 5, 7].forEach((radius) => {
-        const ring = new THREE.Mesh(
-          new THREE.RingGeometry(radius - 0.05, radius, 64),
-          new THREE.MeshBasicMaterial({ color: 0x06b6d4, side: THREE.DoubleSide, transparent: true, opacity: 0.35 })
-        );
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.y = 0.02;
-        setGroup.add(ring);
+      const deskTopGeo = new THREE.CylinderGeometry(2.2, 2.4, 0.1, 32, 1, false, 0, Math.PI);
+      const deskTopMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        roughness: 0.1,
+        metalness: 0.9,
+        emissive: 0x0e7490,
+        emissiveIntensity: 0.2,
       });
-    } else if (theme === "morning") {
-      // 4. MORNING TALK & LOUNGE STUDIO
-      scene.background = new THREE.Color(0x1a1510);
+      const deskTop = new THREE.Mesh(deskTopGeo, deskTopMat);
+      deskTop.position.set(0, 1.1, 0);
+      setGroup.add(deskTop);
 
-      // Modern Lounge Coffee Table
-      const tableGeo = new THREE.BoxGeometry(2.4, 0.15, 1.2);
-      const tableMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.3, metalness: 0.2 });
-      const table = new THREE.Mesh(tableGeo, tableMat);
-      table.position.set(0, 0.7, 0.2);
-      setGroup.add(table);
+      const gridHelper = new THREE.GridHelper(18, 24, 0x06b6d4, 0x164e63);
+      gridHelper.position.set(0, 0.01, 0);
+      setGroup.add(gridHelper);
+    } else {
+      scene.background = new THREE.Color(0x18130e);
 
-      // Chrome Table Legs
-      [
-        [-1, -0.4],
-        [1, -0.4],
-        [-1, 0.4],
-        [1, 0.4],
-      ].forEach(([x, z]) => {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.65), chromeMat);
-        leg.position.set(x, 0.35, z + 0.2);
-        setGroup.add(leg);
+      const deskTopGeo = new THREE.CylinderGeometry(2.6, 2.8, 0.18, 32, 1, false, 0, Math.PI);
+      const deskTopMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.6, metalness: 0.1 });
+      const deskTop = new THREE.Mesh(deskTopGeo, deskTopMat);
+      deskTop.position.set(0, 1.1, 0);
+      setGroup.add(deskTop);
+
+      const wallGeo = new THREE.CylinderGeometry(7.5, 7.5, 4.8, 64, 1, true, Math.PI * 0.75, Math.PI * 0.5);
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: 0x271a10,
+        roughness: 0.7,
+        side: THREE.BackSide,
+        emissive: 0x451a03,
+        emissiveIntensity: 0.25,
       });
+      const wall = new THREE.Mesh(wallGeo, wallMat);
+      wall.position.set(0, 2.4, 0);
+      setGroup.add(wall);
 
-      // Warm Acoustic Wood-Slat Back Wall
-      for (let s = -4; s <= 4; s += 0.4) {
-        const slatGeo = new THREE.BoxGeometry(0.25, 4.5, 0.08);
-        const slatMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.5 });
-        const slat = new THREE.Mesh(slatGeo, slatMat);
-        slat.position.set(s, 2.25, -3.2);
-        setGroup.add(slat);
-      }
-
-      // Studio Coffee Cup on Table
-      const cupGeo = new THREE.CylinderGeometry(0.06, 0.04, 0.12, 16);
-      const cupMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
-      const cup = new THREE.Mesh(cupGeo, cupMat);
-      cup.position.set(0.6, 0.82, 0.3);
-      setGroup.add(cup);
+      const floorGeo = new THREE.PlaneGeometry(16, 16);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8 });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      setGroup.add(floor);
     }
 
-    // Common Studio Items (Microphones & Prompter Tablet)
-    if (theme !== "morning") {
-      for (let i = -0.5; i <= 0.5; i += 1.0) {
-        const micBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.04, 16), metalMat);
-        micBase.position.set(i, 1.2, 0.6);
-        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8), metalMat);
-        stem.position.set(i, 1.35, 0.5);
-        stem.rotation.x = -0.3;
-        const capsule = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.08, 8, 16), metalMat);
-        capsule.position.set(i, 1.48, 0.42);
-        capsule.rotation.x = -0.3;
-        setGroup.add(micBase, stem, capsule);
-      }
+    // Anchor Microphones
+    [-0.6, 0.6].forEach((xPos) => {
+      const standGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 12);
+      const stand = new THREE.Mesh(standGeo, metalMat);
+      stand.position.set(xPos, 1.35, 0.3);
 
-      const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.02, 0.3), metalMat);
-      tablet.position.set(0, 1.2, 0.8);
-      tablet.rotation.x = 0.2;
-      setGroup.add(tablet);
-    }
+      const micHeadGeo = new THREE.SphereGeometry(0.04, 12, 12);
+      const micHead = new THREE.Mesh(micHeadGeo, chromeMat);
+      micHead.position.set(xPos, 1.55, 0.3);
+
+      setGroup.add(stand);
+      setGroup.add(micHead);
+    });
+
+    // Studio Camera Rig
+    const camBoxGeo = new THREE.BoxGeometry(0.3, 0.35, 0.5);
+    const camBox = new THREE.Mesh(camBoxGeo, metalMat);
+    camBox.position.set(2.8, 1.7, 4.2);
+    camBox.lookAt(0, 1.2, 0);
+
+    const tallyGeo = new THREE.SphereGeometry(0.03, 12, 12);
+    const tallyMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const tally = new THREE.Mesh(tallyGeo, tallyMat);
+    tally.position.set(2.8, 1.95, 4.2);
+    setGroup.add(camBox);
+    setGroup.add(tally);
 
     scene.add(setGroup);
   };
@@ -305,30 +304,25 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Scene & PBR Setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0c14);
-    scene.fog = new THREE.FogExp2(0x0a0c14, 0.035);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 100);
     camera.position.set(0, 3, 9);
-    camera.lookAt(0, 1.2, 0);
     cameraRef.current = camera;
+    currentCameraPos.current.set(0, 3, 9);
+    targetCameraPos.current.set(0, 3, 9);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+    container.appendChild(renderer.domElement);
 
-    // Lighting
-    const hemiLight = new THREE.HemisphereLight(0x334466, 0x050510, 0.6);
-    scene.add(hemiLight);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffeedd, 2.2);
     keyLight.position.set(4, 7, 5);
@@ -336,53 +330,31 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     scene.add(keyLight);
     keyLightRef.current = keyLight;
 
-    const fillLight = new THREE.DirectionalLight(0x4466aa, 1.0);
-    fillLight.position.set(-5, 4, 3);
-    scene.add(fillLight);
-
-    const onAirLight = new THREE.PointLight(0xff2222, 2.5, 12);
-    onAirLight.position.set(0, 4.5, -2);
+    const onAirLight = new THREE.PointLight(0xef4444, 2.2, 12);
+    onAirLight.position.set(0, 4.5, 0);
     scene.add(onAirLight);
     onAirLightRef.current = onAirLight;
 
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(35, 35);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.2, metalness: 0.85 });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    // Initial Set Build
     buildStudioSet(scene, studioSet);
 
-    // Broadcast Camera on Pedestal
-    const studioHardwareMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.2 });
-    const camRig = new THREE.Group();
-    const camBase = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.2, 16), studioHardwareMat);
-    const camPole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.4, 16), studioHardwareMat);
-    camPole.position.y = 0.8;
-    const camBody = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 1.1), studioHardwareMat);
-    camBody.position.y = 1.6;
-    const camLens = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.4, 16), studioHardwareMat);
-    camLens.rotation.x = Math.PI / 2;
-    camLens.position.set(0, 1.6, -0.65);
-    const tally = new THREE.Mesh(new THREE.SphereGeometry(0.04), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-    tally.position.set(0, 1.9, 0.2);
-    camRig.add(camBase, camPole, camBody, camLens, tally);
-    camRig.position.set(3.5, 0, 4.5);
-    camRig.rotation.y = -0.55;
-    scene.add(camRig);
-
-    // Animation Loop
     let animId: number;
-    let clock = new THREE.Clock();
+    const clock = new THREE.Clock();
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const dt = clock.getDelta();
+      const elapsed = clock.getElapsedTime();
 
-      // Smooth camera transition (exponential damping)
+      // Camera transitions / director movement
+      if (cameraView === "auto") {
+        // Slow cinematic sweep
+        const radius = 7.5 + Math.sin(elapsed * 0.25) * 1.5;
+        const angle = Math.sin(elapsed * 0.15) * 0.45;
+        targetCameraPos.current.x = Math.sin(angle) * radius;
+        targetCameraPos.current.z = Math.cos(angle) * radius;
+        targetCameraPos.current.y = 2.4 + Math.sin(elapsed * 0.2) * 0.6;
+      }
+
       currentCameraPos.current.lerp(targetCameraPos.current, 1 - Math.exp(-4.5 * dt));
       camera.position.copy(currentCameraPos.current);
       camera.lookAt(0, 1.2, 0);
@@ -393,9 +365,8 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       }
 
       // Subtle on-air pulse
-      const t = clock.getElapsedTime();
       if (onAirLightRef.current) {
-        onAirLightRef.current.intensity = 2.0 + Math.sin(t * 3.5) * 0.8;
+        onAirLightRef.current.intensity = 2.0 + Math.sin(elapsed * 3.5) * 0.8;
       }
 
       renderer.render(scene, camera);
@@ -419,6 +390,14 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      if (recordTimerRef.current) {
+        clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+      }
     };
   }, [isOpen]);
 
@@ -431,7 +410,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   };
 
   // Handle Camera Presets
-  const setCameraPreset = (view: "wide" | "anchor" | "overhead") => {
+  const setCameraPreset = (view: "wide" | "anchor" | "overhead" | "auto") => {
     setCameraView(view);
     if (view === "wide") {
       targetCameraPos.current.set(0, 3, 9);
@@ -459,35 +438,250 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     }
   };
 
+  // Play / Pause news broadcast audio inside 3D Studio
+  const handleTogglePlay = async () => {
+    if (isLocalAudioPlaying || isPlaying) {
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+        audioElementRef.current = null;
+      }
+      if (onStopBroadcast) {
+        onStopBroadcast();
+      }
+      setIsLocalAudioPlaying(false);
+    } else {
+      let resolvedAudioUrl = audioUrl;
+      if (!resolvedAudioUrl && audioBlob) {
+        resolvedAudioUrl = URL.createObjectURL(audioBlob);
+      }
+
+      if (resolvedAudioUrl) {
+        const audio = new Audio(resolvedAudioUrl);
+        audioElementRef.current = audio;
+        audio.onended = () => setIsLocalAudioPlaying(false);
+        await audio.play().catch(() => {});
+        setIsLocalAudioPlaying(true);
+      } else if (onPlayBroadcast) {
+        onPlayBroadcast();
+        setIsLocalAudioPlaying(true);
+      }
+    }
+  };
+
+  // Start HD 3D Studio Recording with Audio Merge
+  const handleStartRecording = async () => {
+    if (!rendererRef.current?.domElement) return;
+
+    try {
+      recordedChunksRef.current = [];
+      const canvas = rendererRef.current.domElement;
+      const canvasStream = canvas.captureStream(30);
+
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const actx = new AudioCtx();
+      audioContextRef.current = actx;
+      const dest = actx.createMediaStreamDestination();
+
+      let resolvedAudioUrl = audioUrl;
+      if (!resolvedAudioUrl && audioBlob) {
+        resolvedAudioUrl = URL.createObjectURL(audioBlob);
+      }
+
+      if (resolvedAudioUrl) {
+        const audio = new Audio(resolvedAudioUrl);
+        audio.crossOrigin = "anonymous";
+        audioElementRef.current = audio;
+
+        const source = actx.createMediaElementSource(audio);
+        source.connect(dest);
+        source.connect(actx.destination);
+
+        audio.onended = () => {
+          handleStopRecording();
+        };
+
+        await audio.play().catch(() => {});
+        setIsLocalAudioPlaying(true);
+      } else if (onPlayBroadcast) {
+        onPlayBroadcast();
+        setIsLocalAudioPlaying(true);
+      }
+
+      const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()];
+      const audioTracks = dest.stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        tracks.push(...audioTracks);
+      }
+
+      const combinedStream = new MediaStream(tracks);
+
+      let mimeType = "video/webm;codecs=vp9,opus";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "video/mp4";
+      }
+
+      const recorder = new MediaRecorder(combinedStream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: mimeType });
+        setRecordedVideoBlob(blob);
+        setIsRecording(false);
+        setIsLocalAudioPlaying(false);
+        if (recordTimerRef.current) {
+          clearInterval(recordTimerRef.current);
+          recordTimerRef.current = null;
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      setRecordedVideoBlob(null);
+      setRecordSeconds(0);
+
+      recordTimerRef.current = setInterval(() => {
+        setRecordSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("3D Studio Recording error:", err);
+      setIsRecording(false);
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
+    }
+    if (onStopBroadcast) {
+      onStopBroadcast();
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    setIsLocalAudioPlaying(false);
+    setIsRecording(false);
+  };
+
   if (!isOpen) return null;
 
+  const isLiveAudioActive = isLocalAudioPlaying || isPlaying;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/90 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/90 backdrop-blur-md animate-fade-in font-sans">
       <div className="bg-neutral-950 border border-neutral-700/80 rounded-2xl w-full max-w-5xl h-[88vh] max-h-[850px] overflow-hidden shadow-2xl flex flex-col relative text-white">
-        {/* Top Header */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/50 to-transparent">
+        
+        {/* Top Header & Quick Action Bar */}
+        <div className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/90 via-black/60 to-transparent">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-md shadow-red-950/60">
               <Radio className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white tracking-wide">
-                  3D ቨርቹዋል ዜና ስቱዲዮ
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-600 text-white animate-pulse">
-                  ON AIR
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white tracking-wide">
+                3D ቨርቹዋል ዜና ስቱዲዮ
+              </span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                isLiveAudioActive || isRecording
+                  ? "bg-red-600 text-white animate-pulse"
+                  : "bg-neutral-800 text-neutral-400"
+              }`}>
+                ON AIR
+              </span>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Action Buttons: Play, Record, Export & Close */}
+          <div className="flex items-center gap-2">
+            {/* Recording Timer Badge */}
+            {isRecording && (
+              <div className="flex items-center gap-1.5 bg-red-950/90 border border-red-700 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-red-200">
+                <CircleDot className="w-3.5 h-3.5 text-red-400 animate-ping" />
+                <span>REC {formatTime(recordSeconds)}</span>
+              </div>
+            )}
+
+            {/* Play/Stop Audio Button */}
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                isLiveAudioActive
+                  ? "bg-amber-500 text-neutral-950 shadow-md"
+                  : "bg-neutral-900 border border-neutral-700 text-neutral-200 hover:text-white hover:bg-neutral-800"
+              }`}
+            >
+              {isLiveAudioActive ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              <span>{isLiveAudioActive ? "አቁም" : "አጫውት"}</span>
+            </button>
+
+            {/* Record 3D Video Button */}
+            {!isRecording ? (
+              <button
+                type="button"
+                onClick={handleStartRecording}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md transition-all cursor-pointer"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span>ቪዲዮ ቅረጽ</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStopRecording}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 border border-red-500 text-red-300 transition-all cursor-pointer"
+              >
+                <Square className="w-3.5 h-3.5 text-red-400" />
+                <span>ቀረጻ አቁም</span>
+              </button>
+            )}
+
+            {/* Download Video Button (if recorded) */}
+            {recordedVideoBlob && (
+              <button
+                type="button"
+                onClick={() => downloadBlob(recordedVideoBlob, `3d_studio_news_${Date.now()}.mp4`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer animate-pulse"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>ቪዲዮ አውርድ</span>
+              </button>
+            )}
+
+            {/* CapCut Launcher Button (if recorded) */}
+            {recordedVideoBlob && (
+              <button
+                type="button"
+                onClick={() =>
+                  openCapCutWithMedia({
+                    blob: recordedVideoBlob,
+                    filename: `3d_studio_news_${Date.now()}.mp4`,
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 hover:bg-neutral-800 border border-cyan-500/60 text-cyan-300 shadow-md transition-all cursor-pointer"
+              >
+                <Scissors className="w-3.5 h-3.5 text-cyan-400" />
+                <span>CapCut</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors ml-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* 3D WebGL Canvas */}
@@ -544,8 +738,17 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <Camera className="w-4 h-4 text-neutral-400 mr-1" />
               <button
                 type="button"
+                onClick={() => setCameraPreset("auto")}
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  cameraView === "auto" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
+                }`}
+              >
+                ራስ-ሰር (Auto)
+              </button>
+              <button
+                type="button"
                 onClick={() => setCameraPreset("wide")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   cameraView === "wide" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -554,7 +757,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCameraPreset("anchor")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   cameraView === "anchor" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -563,7 +766,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setCameraPreset("overhead")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   cameraView === "overhead" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -577,7 +780,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setLightingPreset("day")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   lightingMode === "day" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -586,7 +789,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setLightingPreset("dramatic")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   lightingMode === "dramatic" ? "bg-red-600 text-white" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -595,7 +798,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <button
                 type="button"
                 onClick={() => setLightingPreset("night")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
                   lightingMode === "night" ? "bg-cyan-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
                 }`}
               >
@@ -606,7 +809,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold transition-colors ml-auto sm:ml-0"
+              className="px-3.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold transition-colors ml-auto sm:ml-0 cursor-pointer"
             >
               ዝጋ (Close)
             </button>

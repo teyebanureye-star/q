@@ -13,6 +13,34 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { topic } = req.body || {};
+  if (!topic || typeof topic !== "string" || !topic.trim()) {
+    return res.status(400).json({ error: "እባክዎ ርዕሰ ጉዳይ ያስገቡ (Topic is required)" });
+  }
+
+  const defaultHeadlines = {
+    headlines: [
+      {
+        id: "1",
+        style: "🚨 ሰበር ዜና (Breaking News)",
+        headline: `ሰበር ዜና፤ ${topic.trim()}`,
+        hookNote: "አፋጣኝ የሰበር ዜና ርዕስ",
+      },
+      {
+        id: "2",
+        style: "🏛️ አበይት ዜና (Prime Broadcast)",
+        headline: `የዜና አንባቢ ስቱዲዮው አበይት ዜና፤ ${topic.trim()}`,
+        hookNote: "የተሟላ የዋና ዜና ርዕስ",
+      },
+      {
+        id: "3",
+        style: "🔥 ቲክቶክ እና ሶሻል ሚዲያ (Viral Hook)",
+        headline: `አስደናቂ መረጃ! ${topic.trim()}`,
+        hookNote: "ለሶሻል ሚዲያ ተስማሚ አጭር ርዕስ",
+      },
+    ],
+  };
+
   try {
     const rawKey =
       process.env.GEMINI_API_KEY ||
@@ -21,29 +49,17 @@ export default async function handler(req: any, res: any) {
       "";
     const apiKey = rawKey.replace(/^["']|["']$/g, "").trim();
 
-    if (!apiKey) {
-      return res.status(401).json({
-        error: "በ Vercel ላይ GEMINI_API_KEY አልተገኘም።",
-        missingApiKey: true,
-      });
-    }
-
-    const { topic } = req.body || {};
-
-    if (!topic || typeof topic !== "string" || !topic.trim()) {
-      return res.status(400).json({ error: "እባክዎ ርዕሰ ጉዳይ ያስገቡ (Topic is required)" });
-    }
-
-    const ai = new GoogleGenAI({
-      apiKey: apiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
+    if (apiKey) {
+      const ai = new GoogleGenAI({
+        apiKey: apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
         },
-      },
-    });
+      });
 
-    const prompt = `እርስዎ የፋና ብሮድካስቲንግ ኮርፖሬት (FBC) ዋና የዜና አርታዒና የርዕስ ስፔሻሊስት ነዎት።
+      const prompt = `እርስዎ የዜና አንባቢ ስቱዲዮው (News Reader Studio) ዋና የዜና አርታዒና የርዕስ ስፔሻሊስት ነዎት።
 ለተሰጠው ርዕሰ ጉዳይ ወይም መረጃ 3 (ሦስት) እጅግ ሳቢ፣ ፕሮፌሽናል እና አድማጭን የሚስቡ የአማርኛ የዜና ርዕሶችን ያመንጩ።
 
 ርዕሰ ጉዳይ (Topic):
@@ -67,65 +83,53 @@ ${topic.trim()}
     {
       "id": "1",
       "style": "🚨 ሰበር ዜና (Breaking News)",
-      "headline": "ርዕሱ እዚህ ይጻፍ",
-      "hookNote": "ይህ ርዕስ ለምን ሳቢ እንደሆነ አጭር ማብራሪያ"
+      "headline": "የሰበር ዜና ርዕስ እዚህ ይጻፉ",
+      "hookNote": "አፋጣኝ የሰበር ዜና ርዕስ"
     },
     {
       "id": "2",
       "style": "🏛️ አበይት ዜና (Prime Broadcast)",
-      "headline": "ርዕሱ እዚህ ይጻፍ",
-      "hookNote": "ይህ ርዕስ ለምን ሳቢ እንደሆነ አጭር ማብራሪያ"
+      "headline": "የዋና ዜና ርዕስ እዚህ ይጻፉ",
+      "hookNote": "የተሟላ የዋና ዜና ርዕስ"
     },
     {
       "id": "3",
       "style": "🔥 ቲክቶክ እና ሶሻል ሚዲያ (Viral Hook)",
-      "headline": "ርዕሱ እዚህ ይጻፍ",
-      "hookNote": "ይህ ርዕስ ለምን ሳቢ እንደሆነ አጭር ማብራሪያ"
+      "headline": "ለሶሻል ሚዲያ ተስማሚ ርዕስ እዚህ ይጻፉ",
+      "hookNote": "ለሶሻል ሚዲያ ተስማሚ አጭር ርዕስ"
     }
   ]
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.8-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+      } catch {
+        response = await ai.models.generateContent({
+          model: "gemini-3.8-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
+      }
 
-    const jsonText = response.text?.trim() || "{}";
-    let parsed: any;
-    try {
+      const jsonText = response.text?.trim() || "{}";
       const cleanJson = jsonText.replace(/^```json\s*/, "").replace(/^```\s*/, "").replace(/```$/, "").trim();
-      parsed = JSON.parse(cleanJson);
-    } catch {
-      parsed = {
-        headlines: [
-          {
-            id: "1",
-            style: "🚨 ሰበር ዜና (Breaking News)",
-            headline: `ሰበር ዜና፤ ${topic.trim()}`,
-            hookNote: "አፋጣኝ የሰበር ዜና ርዕስ",
-          },
-          {
-            id: "2",
-            style: "🏛️ አበይት ዜና (Prime Broadcast)",
-            headline: `የፋና አበይት ዜና፤ ${topic.trim()}`,
-            hookNote: "የተሟላ የዋና ዜና ርዕስ",
-          },
-          {
-            id: "3",
-            style: "🔥 ቲክቶክ እና ሶሻል ሚዲያ (Viral Hook)",
-            headline: `አስደናቂ መረጃ! ${topic.trim()}`,
-            hookNote: "ለሶሻል ሚዲያ ተስማሚ አጭር ርዕስ",
-          },
-        ],
-      };
+      const parsed = JSON.parse(cleanJson);
+      if (parsed?.headlines && Array.isArray(parsed.headlines) && parsed.headlines.length > 0) {
+        return res.json(parsed);
+      }
     }
-
-    return res.json(parsed);
   } catch (error: any) {
-    console.error("AI Headline Error:", error?.message || error);
-    return res.status(500).json({ error: error?.message || "ርዕሶችን ማመንጨት አልተቻለም" });
+    console.warn("AI Headline Error, using fallback headlines:", error?.message || error);
   }
+
+  return res.json(defaultHeadlines);
 }

@@ -27,6 +27,49 @@ export const AiPolishModal: React.FC<AiPolishModalProps> = ({
 
   if (!isOpen) return null;
 
+function clientSideAmharicFormat(rawText: string, formatType: string) {
+  const clean = rawText.trim();
+  const firstSentence = clean.split(/[።\n.!?]/)[0]?.trim() || clean.slice(0, 70);
+  let headline = "";
+  if (formatType === "breaking") headline = `🚨 ሰበር ዜና፤ ${firstSentence.slice(0, 80)}`;
+  else if (formatType === "headline") headline = `🏛️ አበይት ዜና፤ ${firstSentence.slice(0, 80)}`;
+  else if (formatType === "brief") headline = `📱 አጭር መረጃ፤ ${firstSentence.slice(0, 80)}`;
+  else headline = `🌍 የትንታኔ ዘገባ፤ ${firstSentence.slice(0, 80)}`;
+
+  let script = clean
+    .replace(/\bጠ\/ሚ\b|\bጠ\/ሚኒስትር\b/g, "ጠቅላይ ሚኒስትር")
+    .replace(/\bዶ\/ር\b/g, "ዶክተር")
+    .replace(/\bወ\/ሮ\b/g, "ወይዘሮ")
+    .replace(/\bወ\/ሪት\b/g, "ወይዘሪት")
+    .replace(/\bኪ\.ሜ\b|\bኪ\/ሜ\b/g, "ኪሎሜትር")
+    .replace(/\bም\/ቤት\b/g, "ምክር ቤት")
+    .replace(/\bሚ\/ር\b/g, "ሚኒስቴር")
+    .replace(/\bፕ\/ት\b/g, "ፕሬዝዳንት")
+    .replace(/\bኮ\/ል\b/g, "ኮሎኔል")
+    .replace(/\bጀ\/ል\b/g, "ጄኔራል")
+    .replace(/\bዓ\.ም\b|\bዓ\/ም\b/g, "ዓመተ ምሕረት");
+
+  let broadcastScript = "";
+  if (formatType === "breaking") {
+    broadcastScript = script.startsWith("ሰበር ዜና")
+      ? script
+      : `ሰበር ዜና፤ የዜና አንባቢ ስቱዲዮው የሰዓቱን አበይት መረጃዎች ይዘንላችሁ ቀርበናል::\n\n${script}\n\nየዜና አንባቢ ስቱዲዮው፤ አዲስ አበባ።`;
+  } else if (formatType === "brief") {
+    broadcastScript = `አስደናቂ የሰዓቱ አጭር መረጃ! ${script}\n\nለተጨማሪ ወቅታዊ መረጃዎች ይከታተሉን።`;
+  } else if (formatType === "report") {
+    broadcastScript = `የትንታኔ ዘገባ፤ በዛሬው ዕለት የወጣውን አበይት ጉዳይ አስመልክቶ የቀረበ ዝርዝር ዘገባ::\n\n${script}\n\nየዜና አንባቢ ስቱዲዮው የትንታኔ ዘገባ፤ አዲስ አበባ።`;
+  } else {
+    broadcastScript = `አበይት ዜናዎች፤ የዜና አንባቢ ስቱዲዮው የሰዓቱ ዋና ዋና ዜናዎችን ይዘን ቀርበናል::\n\n${script}\n\nየዜና አንባቢ ስቱዲዮው፤ አዲስ አበባ።`;
+  }
+
+  return {
+    headline,
+    broadcastScript,
+    category: formatType === "breaking" ? "ሰበር ዜና" : formatType === "headline" ? "ዋና ዜና" : "የተስተካከለ ዜና",
+    teleprompterNotes: "በተረጋጋና ሳቢ በሆነ የዜና አቀራረብ ስልት ያንብቡ።",
+  };
+}
+
   const handlePolish = async () => {
     if (!inputText.trim()) return;
 
@@ -43,14 +86,21 @@ export const AiPolishModal: React.FC<AiPolishModalProps> = ({
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("የዜና ማስተካከያ አገልግሎቱ ምላሽ አልሰጠም");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.broadcastScript) {
+          setResult(data);
+          return;
+        }
       }
 
-      const data = await res.json();
-      setResult(data);
-    } catch (err: any) {
-      setErrorMsg(err?.message || "ስክሪፕቱን ማዘጋጀት አልተቻለም");
+      // Fallback
+      const fallback = clientSideAmharicFormat(inputText, formatType);
+      setResult(fallback);
+    } catch {
+      // Fallback on network error
+      const fallback = clientSideAmharicFormat(inputText, formatType);
+      setResult(fallback);
     } finally {
       setIsLoading(false);
     }
@@ -140,12 +190,12 @@ export const AiPolishModal: React.FC<AiPolishModalProps> = ({
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>በፋና ኤዲተሮች ስልት በማዘጋጀት ላይ...</span>
+                <span>በዜና አዘጋጅ ስልት በማዘጋጀት ላይ...</span>
               </>
             ) : (
               <>
                 <Wand2 className="w-4 h-4" />
-                <span>በፋና የዜና አጻጻፍ ስልት አዘጋጅ</span>
+                <span>በዜና አጻጻፍ ስልት አዘጋጅ</span>
               </>
             )}
           </button>

@@ -930,6 +930,12 @@ export default function App() {
         onClose={() => setIs3DStudioOpen(false)}
         activeHeadline={script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው ዜና"}
         anchorName={selectedAnchor.nameAmharic}
+        audioBlob={exportedAudioBlob}
+        audioUrl={exportedAudioUrl || selectedAnchor.sampleAudioUrl}
+        script={script}
+        isPlaying={isPlaying}
+        onPlayBroadcast={handleBroadcast}
+        onStopBroadcast={handleStop}
       />
     </div>
   );

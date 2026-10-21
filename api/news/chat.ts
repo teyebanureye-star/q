@@ -53,7 +53,7 @@ export default async function handler(req: any, res: any) {
           model: "gemini-2.5-flash",
           contents: formattedContents,
           config: {
-            systemInstruction: `እርስዎ የፋና ብሮድካስቲንግ ኮርፖሬት (FBC) ዋና የዜና ኤዲተርና የጋዜጠኞች ረዳት ነዎት።
+            systemInstruction: `እርስዎ የዜና አንባቢ ስቱዲዮው (News Reader Studio) ዋና የዜና ኤዲተርና የጋዜጠኞች ረዳት ነዎት።
 ለጋዜጠኞችና ለዜና አዘጋጆች የሚከተሉትን ሙያዊ ድጋፎች ይሰጣሉ:
 1. የዜና መረጃዎችንና ምንጮችን ማጣራት (Fact-checking advice)
 2. አጫጭር መረጃዎችን ወደ ሙሉ የዜና ዘገባ ማሳደግ
@@ -74,7 +74,7 @@ export default async function handler(req: any, res: any) {
 
     // High quality intelligent editorial fallback
     const lastUserMsg = validMessages[validMessages.length - 1]?.text || "";
-    let fallbackReply = `በፋና የዜና ክፍል አሰራር መሰረት ለቀረበው ሀሳብ የሚከተለውን ሙያዊ ምክር አዘጋጅተናል፦\n\n`;
+    let fallbackReply = `በዜና አንባቢ ስቱዲዮው ክፍል አሰራር መሰረት ለቀረበው ሀሳብ የሚከተለውን ሙያዊ ምክር አዘጋጅተናል፦\n\n`;
 
     if (lastUserMsg.includes("መንጠቆ") || lastUserMsg.includes("ቲክቶክ") || lastUserMsg.includes("ሾርትስ")) {
       fallbackReply += `🎯 **ለሶሻል ሚዲያ (ቲክቶክ/ዩቲዩብ) 3 ማራኪ የዜና መንጠቆዎች፦**\n1. "ይህን ያውቁ ኖሯል? በዛሬው ዕለት የወጣው አስደናቂ መረጃ..."\n2. "ሰበር መረጃ! በመላው ኢትዮጵያ ከፍተኛ መነጋገሪያ የሆነው ዜና..."\n3. "ከጥቂት ደቂቃዎች በፊት የደረሰን አዲስ መረጃ እነሆ..."\n\n📌 *ምክር፦ በመጀመሪያዎቹ 3 ሰከንዶች ውስጥ ዋናውን ነጥብ በመናገር ተመልካቹን ያስሩ!*`;
@@ -83,7 +83,7 @@ export default async function handler(req: any, res: any) {
     } else if (lastUserMsg.includes("ነጥብ") || lastUserMsg.includes("አጠቃልል") || lastUserMsg.includes("አሳጥር")) {
       fallbackReply += `📋 **የዜናው ዋና ዋና ነጥቦች ማጠቃለያ፦**\n• የዜናው ዋና መነሻና የተከሰተበት ሁኔታ\n• በቀጥታ የሚመለከታቸው አካላትና የተሰጡ ምላሾች\n• ቀጣይ እርምጃዎችና የክትትል መረጃዎች\n\n*ማስታወሻ፦ ጽሑፉን በስክሪፕት ሳጥንዎ ውስጥ አስገብተው በድምፅ ማሰማት ይችላሉ።*`;
     } else {
-      fallbackReply += `የዜና ስክሪፕትዎን በፋና የአቀራረብ ስልት ለማሳመር፦\n1. ዓረፍተ-ነገሮቹን አጫጭር እና ግልጽ ያድርጓቸው።\n2. አኃዞችን እና አጽህሮተ-ቃላትን በአማርኛ ፊደል ሙሉ አድርገው ይጻፉ።\n3. በስክሪፕት ሳጥኑ ስር ያለውን **«በፋና ስልት አሳምር»** ወይም **«ርዕስ አመንጭ»** ቁልፍ በመጫን ጽሑፉን ማበልጸግ ይችላሉ።`;
+      fallbackReply += `የዜና ስክሪፕትዎን በዜና አንባቢ ስቱዲዮው የአቀራረብ ስልት ለማሳመር፦\n1. ዓረፍተ-ነገሮቹን አጫጭር እና ግልጽ ያድርጓቸው።\n2. አኃዞችን እና አጽህሮተ-ቃላትን በአማርኛ ፊደል ሙሉ አድርገው ይጻፉ።\n3. በስክሪፕት ሳጥኑ ስር ያለውን **«የዜና አዘጋጅ»** ወይም **«ርዕስ አመንጭ»** ቁልፍ በመጫን ጽሑፉን ማበልጸግ ይችላሉ።`;
     }
 
     return res.json({ reply: fallbackReply });
