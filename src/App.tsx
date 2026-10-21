@@ -554,6 +554,15 @@ export default function App() {
     }
   };
 
+  const handleUpdateEditedAudio = (newBlob: Blob, newUrl: string) => {
+    setExportedAudioBlob(newBlob);
+    setExportedAudioUrl(newUrl);
+    setNotification({
+      type: "success",
+      text: "የተስተካከለው የድምፅ ፋይል ተዘጋጅቷል",
+    });
+  };
+
   const { wordCount, durationSeconds } = calculateAmharicDuration(script, settings.speechRate);
 
   // Auth Loading Screen
@@ -749,7 +758,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Real-time Visualizer & Master Telemetry Console */}
+        {/* Real-time Visualizer & Master Telemetry Console with Clickable Waveform Editor */}
         <AudioVisualizer
           isPlaying={isPlaying}
           anchorName={selectedAnchor.nameAmharic}
@@ -757,7 +766,7 @@ export default function App() {
             settings.musicBed === "breaking"
               ? "ሰበር ዜና ቴማ"
               : settings.musicBed === "prime"
-              ? "ፋና ዋና ዜና"
+              ? "ዋና ዜና"
               : settings.musicBed === "analysis"
               ? "ትንታኔና ዘገባ"
               : settings.musicBed === "tech"
@@ -766,6 +775,9 @@ export default function App() {
           }
           elapsedSeconds={elapsedSeconds}
           statusMessage={statusMessage}
+          audioBlob={exportedAudioBlob}
+          audioUrl={exportedAudioUrl || selectedAnchor.sampleAudioUrl}
+          onUpdateAudio={handleUpdateEditedAudio}
         />
 
         {/* Two-Column Studio Layout */}
