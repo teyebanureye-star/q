@@ -17,8 +17,130 @@ import {
   CircleDot,
   RotateCcw,
   Volume2,
+  CheckCircle,
+  Zap,
 } from "lucide-react";
-import { downloadBlob, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadBlob, downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
+
+// Safe rounded rectangle for cross-browser 2D Canvas rendering
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (typeof (ctx as any).roundRect === "function") {
+    ctx.beginPath();
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+}
+
+// Composites the 3D WebGL Canvas with high-fidelity broadcast news overlay (ON AIR + News Ticker + Anchor)
+function createBroadcastCompositeStream(
+  webglCanvas: HTMLCanvasElement,
+  headline: string,
+  anchor: string
+): { stream: MediaStream; stop: () => void } {
+  const width = 1280;
+  const height = 720;
+  const compCanvas = document.createElement("canvas");
+  compCanvas.width = width;
+  compCanvas.height = height;
+  const ctx = compCanvas.getContext("2d")!;
+
+  let animFrameId: number;
+  let active = true;
+
+  const draw = () => {
+    if (!active) return;
+
+    // 1. Draw 3D WebGL Studio Canvas
+    try {
+      ctx.drawImage(webglCanvas, 0, 0, width, height);
+    } catch {
+      // ignore
+    }
+
+    // 2. Top-Left ON AIR Live Badge
+    ctx.fillStyle = "rgba(220, 38, 38, 0.95)";
+    drawRoundedRect(ctx, 32, 28, 115, 34, 8);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("🔴 ON AIR", 46, 50);
+
+    // 3. Top-Right 3D Studio Badge
+    ctx.fillStyle = "rgba(10, 10, 15, 0.88)";
+    drawRoundedRect(ctx, width - 250, 28, 218, 34, 8);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.6)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("3D ቨርቹዋል ዜና ስቱዲዮ", width - 232, 50);
+
+    // 4. Lower-Third Headline & Anchor Banner
+    const barHeight = 84;
+    const barY = height - barHeight - 36;
+
+    // Card background
+    ctx.fillStyle = "rgba(10, 10, 12, 0.90)";
+    drawRoundedRect(ctx, 36, barY, width - 72, barHeight, 14);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(245, 158, 11, 0.7)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Amber Tag
+    ctx.fillStyle = "#f59e0b";
+    drawRoundedRect(ctx, 50, barY + 12, 112, 26, 6);
+    ctx.fill();
+    ctx.fillStyle = "#0a0a0a";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("በርዕሰ አንቀጽ", 63, barY + 29);
+
+    // Headline Text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px sans-serif";
+    const cleanHeadline = headline || "የፋና ብሮድካስቲንግ የቀጥታ ዜና ስርጭት";
+    const displayHeadline = cleanHeadline.length > 70 ? cleanHeadline.substring(0, 67) + "..." : cleanHeadline;
+    ctx.fillText(displayHeadline, 176, barY + 31);
+
+    // Subtitle / Anchor Tag
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "12px sans-serif";
+    ctx.fillText(`ፋና ብሮድካስቲንግ ኮርፖሬት • ${anchor || "የዜና አንባቢ"}`, 50, barY + 65);
+
+    animFrameId = requestAnimationFrame(draw);
+  };
+
+  draw();
+
+  const stream = compCanvas.captureStream(30);
+  return {
+    stream,
+    stop: () => {
+      active = false;
+      cancelAnimationFrame(animFrameId);
+    },
+  };
+}
 
 export type StudioSetType = "prime" | "breaking" | "cyber" | "morning";
 
@@ -96,6 +218,8 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
 
   // Audio & Recording State
   const [isRecording, setIsRecording] = useState(false);
+  const [isFastExporting, setIsFastExporting] = useState(false);
+  const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [isLocalAudioPlaying, setIsLocalAudioPlaying] = useState(false);
@@ -111,12 +235,14 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const keyLightRef = useRef<THREE.DirectionalLight | null>(null);
   const onAirLightRef = useRef<THREE.PointLight | null>(null);
 
-  // Recording Refs
+  // Recording & Streaming Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<any>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const compositeStreamRef = useRef<{ stream: MediaStream; stop: () => void } | null>(null);
 
   // Format seconds to mm:ss
   const formatTime = (secs: number) => {
@@ -468,14 +594,28 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     }
   };
 
-  // Start HD 3D Studio Recording with Audio Merge
-  const handleStartRecording = async () => {
+  // Start HD 3D Studio Recording with Broadcast Graphics & Audio Merge
+  const handleStartRecording = async (maxDurationSeconds?: number) => {
     if (!rendererRef.current?.domElement) return;
 
     try {
       recordedChunksRef.current = [];
       const canvas = rendererRef.current.domElement;
-      const canvasStream = canvas.captureStream(30);
+
+      // Create composite stream with live TV broadcast overlay
+      let videoStream: MediaStream;
+      try {
+        const comp = createBroadcastCompositeStream(
+          canvas,
+          activeHeadline,
+          anchorName
+        );
+        compositeStreamRef.current = comp;
+        videoStream = comp.stream;
+      } catch (e) {
+        console.warn("Composite stream fallback:", e);
+        videoStream = canvas.captureStream(30);
+      }
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const actx = new AudioCtx();
@@ -486,28 +626,45 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       if (!resolvedAudioUrl && audioBlob) {
         resolvedAudioUrl = URL.createObjectURL(audioBlob);
       }
+      if (!resolvedAudioUrl) {
+        resolvedAudioUrl = "/audio/sample_dawit_news.wav";
+      }
 
       if (resolvedAudioUrl) {
-        const audio = new Audio(resolvedAudioUrl);
-        audio.crossOrigin = "anonymous";
-        audioElementRef.current = audio;
-
-        const source = actx.createMediaElementSource(audio);
-        source.connect(dest);
-        source.connect(actx.destination);
-
-        audio.onended = () => {
-          handleStopRecording();
-        };
-
-        await audio.play().catch(() => {});
-        setIsLocalAudioPlaying(true);
+        try {
+          const resp = await fetch(resolvedAudioUrl);
+          const ab = await resp.arrayBuffer();
+          const audioBuffer = await actx.decodeAudioData(ab);
+          const bufferSource = actx.createBufferSource();
+          bufferSource.buffer = audioBuffer;
+          bufferSource.connect(dest);
+          bufferSource.connect(actx.destination);
+          bufferSource.onended = () => {
+            handleStopRecording();
+          };
+          bufferSource.start();
+          audioBufferSourceRef.current = bufferSource;
+          setIsLocalAudioPlaying(true);
+        } catch (audioErr) {
+          console.warn("Audio buffer fallback:", audioErr);
+          const audio = new Audio(resolvedAudioUrl);
+          audio.crossOrigin = "anonymous";
+          audioElementRef.current = audio;
+          try {
+            const source = actx.createMediaElementSource(audio);
+            source.connect(dest);
+            source.connect(actx.destination);
+          } catch {}
+          audio.onended = () => handleStopRecording();
+          await audio.play().catch(() => {});
+          setIsLocalAudioPlaying(true);
+        }
       } else if (onPlayBroadcast) {
         onPlayBroadcast();
         setIsLocalAudioPlaying(true);
       }
 
-      const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()];
+      const tracks: MediaStreamTrack[] = [...videoStream.getVideoTracks()];
       const audioTracks = dest.stream.getAudioTracks();
       if (audioTracks.length > 0) {
         tracks.push(...audioTracks);
@@ -520,7 +677,10 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
         mimeType = MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "video/mp4";
       }
 
-      const recorder = new MediaRecorder(combinedStream, { mimeType });
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType,
+        videoBitsPerSecond: 3500000,
+      });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -533,11 +693,19 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
         const blob = new Blob(recordedChunksRef.current, { type: mimeType });
         setRecordedVideoBlob(blob);
         setIsRecording(false);
+        setIsFastExporting(false);
         setIsLocalAudioPlaying(false);
         if (recordTimerRef.current) {
           clearInterval(recordTimerRef.current);
           recordTimerRef.current = null;
         }
+
+        // DIRECT DOWNLOAD TO DEVICE IMMEDIATELY without preconditions
+        downloadDirectVideo(blob, "fana_3d_studio_broadcast");
+        setDownloadSuccessMsg("ቪዲዮው ያለምንም ቅድመ ሁኔታ በቀጥታ ወደ ዲቫይስዎ ወርዶ ተቀምጧል!");
+        setTimeout(() => {
+          setDownloadSuccessMsg(null);
+        }, 5000);
       };
 
       recorder.start(100);
@@ -548,13 +716,32 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       recordTimerRef.current = setInterval(() => {
         setRecordSeconds((s) => s + 1);
       }, 1000);
+
+      if (maxDurationSeconds && maxDurationSeconds > 0) {
+        setTimeout(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            handleStopRecording();
+          }
+        }, maxDurationSeconds * 1000);
+      }
     } catch (err) {
       console.error("3D Studio Recording error:", err);
       setIsRecording(false);
+      setIsFastExporting(false);
     }
   };
 
   const handleStopRecording = () => {
+    if (compositeStreamRef.current) {
+      compositeStreamRef.current.stop();
+      compositeStreamRef.current = null;
+    }
+    if (audioBufferSourceRef.current) {
+      try {
+        audioBufferSourceRef.current.stop();
+      } catch {}
+      audioBufferSourceRef.current = null;
+    }
     if (audioElementRef.current) {
       audioElementRef.current.pause();
       audioElementRef.current = null;
@@ -571,6 +758,17 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     }
     setIsLocalAudioPlaying(false);
     setIsRecording(false);
+    setIsFastExporting(false);
+  };
+
+  // Direct Fast 1-Click Video Download (e.g. 7 seconds broadcast preview clip directly to device)
+  const handleDirectFastDownload = async (durationSecs: number = 7) => {
+    if (isRecording || isFastExporting) {
+      handleStopRecording();
+      return;
+    }
+    setIsFastExporting(true);
+    await handleStartRecording(durationSecs);
   };
 
   if (!isOpen) return null;
@@ -601,7 +799,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons: Play, Record, Export & Close */}
+          {/* Action Buttons: Play, Direct Download, Record, Export & Close */}
           <div className="flex items-center gap-2">
             {/* Recording Timer Badge */}
             {isRecording && (
@@ -610,6 +808,22 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
                 <span>REC {formatTime(recordSeconds)}</span>
               </div>
             )}
+
+            {/* Direct Instant Video Download Button */}
+            <button
+              type="button"
+              onClick={() => handleDirectFastDownload(7)}
+              disabled={isFastExporting}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md ${
+                isFastExporting
+                  ? "bg-emerald-600 text-white animate-pulse"
+                  : "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-950/60"
+              }`}
+              title="ያለምንም ቅድመ ሁኔታ ቪዲዮውን በቀጥታ ወደ ዲቫይስዎ ያውርዱ"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>{isFastExporting ? "በማውረድ ላይ..." : "በቀጥታ ቪዲዮ አውርድ"}</span>
+            </button>
 
             {/* Play/Stop Audio Button */}
             <button
@@ -625,11 +839,11 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               <span>{isLiveAudioActive ? "አቁም" : "አጫውት"}</span>
             </button>
 
-            {/* Record 3D Video Button */}
+            {/* Record 3D Video Button (Auto-downloads upon stop) */}
             {!isRecording ? (
               <button
                 type="button"
-                onClick={handleStartRecording}
+                onClick={() => handleStartRecording()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md transition-all cursor-pointer"
               >
                 <Video className="w-3.5 h-3.5" />
@@ -642,23 +856,24 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 border border-red-500 text-red-300 transition-all cursor-pointer"
               >
                 <Square className="w-3.5 h-3.5 text-red-400" />
-                <span>ቀረጻ አቁም</span>
+                <span>ቀረጻ አቁም & አውርድ</span>
               </button>
             )}
 
-            {/* Download Video Button (if recorded) */}
+            {/* Re-Download Video Button (if already recorded) */}
             {recordedVideoBlob && (
               <button
                 type="button"
-                onClick={() => downloadBlob(recordedVideoBlob, `3d_studio_news_${Date.now()}.mp4`)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer animate-pulse"
+                onClick={() => downloadDirectVideo(recordedVideoBlob, "fana_3d_studio_broadcast")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer"
+                title="ቪዲዮውን በድጋሚ ያውርዱ"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>ቪዲዮ አውርድ</span>
+                <span>በድጋሚ አውርድ</span>
               </button>
             )}
 
-            {/* CapCut Launcher Button (if recorded) */}
+            {/* CapCut Launcher Button */}
             {recordedVideoBlob && (
               <button
                 type="button"
@@ -683,6 +898,31 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Live Export Status Banner */}
+        {isFastExporting && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-emerald-500/80 rounded-xl px-4 py-2.5 shadow-2xl backdrop-blur-md flex items-center gap-3 text-xs text-white">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="font-bold">
+              ቪዲዮው በቀጥታ ወደ ዲቫይስዎ እየወረደ ነው... ({recordSeconds}s)
+            </span>
+            <button
+              type="button"
+              onClick={handleStopRecording}
+              className="px-2.5 py-1 rounded-md bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-xs cursor-pointer shadow-md"
+            >
+              አሁን አውርድና ጨርስ
+            </button>
+          </div>
+        )}
+
+        {/* Download Success Notification */}
+        {downloadSuccessMsg && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-emerald-950/95 border border-emerald-500 rounded-xl px-4 py-2.5 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs text-emerald-200 animate-fade-in font-bold">
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>{downloadSuccessMsg}</span>
+          </div>
+        )}
 
         {/* 3D WebGL Canvas */}
         <div ref={mountRef} className="w-full flex-1 relative cursor-grab active:cursor-grabbing" />
@@ -806,10 +1046,26 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               </button>
             </div>
 
+            {/* Direct Instant Download Button in dock */}
+            <button
+              type="button"
+              onClick={() => handleDirectFastDownload(7)}
+              disabled={isFastExporting}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ml-auto sm:ml-0 ${
+                isFastExporting
+                  ? "bg-emerald-600 text-white animate-pulse"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+              }`}
+              title="ያለምንም ቅድመ ሁኔታ ቪዲዮውን በቀጥታ ወደ ዲቫይስዎ ያውርዱ"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isFastExporting ? "በማውረድ ላይ..." : "ቀጥታ ቪዲዮ አውርድ"}</span>
+            </button>
+
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold transition-colors ml-auto sm:ml-0 cursor-pointer"
+              className="px-3.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             >
               ዝጋ (Close)
             </button>

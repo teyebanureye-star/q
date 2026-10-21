@@ -12,6 +12,7 @@ import {
 import {
   mergeImageAndAudioToVideo,
   downloadBlob,
+  downloadDirectVideo,
   downloadUrl,
   openCapCutWithMedia,
 } from "../utils/mediaMerger";
@@ -101,6 +102,8 @@ export const NewsGraphicsModal: React.FC<NewsGraphicsModalProps> = ({
       });
 
       setMergedVideoBlob(videoBlob);
+      // Auto download directly to user's device
+      downloadDirectVideo(videoBlob, "news_broadcast_video");
     } catch (err: any) {
       console.error("Video merge error:", err);
       setErrorMsg("ቪዲዮውን ማዋሃድ አልተቻለም፤ እባክዎ አስቀድመው ድምፅ ያጫውቱ");

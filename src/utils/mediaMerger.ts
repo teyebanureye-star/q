@@ -10,21 +10,54 @@ export const CAPCUT_EDITOR_URL = "https://www.capcut.com/editor";
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
+  a.style.display = "none";
   a.href = url;
   a.download = filename;
+  a.setAttribute("download", filename);
   document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  try {
+    a.click();
+  } catch {
+    const clickEvt = new MouseEvent("click", {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    });
+    a.dispatchEvent(clickEvt);
+  }
+
+  setTimeout(() => {
+    if (document.body.contains(a)) {
+      document.body.removeChild(a);
+    }
+    URL.revokeObjectURL(url);
+  }, 45000);
+}
+
+/**
+ * Downloads a video directly to the device instantly without preconditions
+ */
+export function downloadDirectVideo(blob: Blob, customPrefix: string = "broadcast_video"): string {
+  const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+  const filename = `${customPrefix}_${Date.now()}.${ext}`;
+  downloadBlob(blob, filename);
+  return filename;
 }
 
 export function downloadUrl(url: string, filename: string) {
   const a = document.createElement("a");
+  a.style.display = "none";
   a.href = url;
   a.download = filename;
+  a.setAttribute("download", filename);
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  setTimeout(() => {
+    if (document.body.contains(a)) {
+      document.body.removeChild(a);
+    }
+  }, 5000);
 }
 
 /**

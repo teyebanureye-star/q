@@ -13,7 +13,7 @@ import {
   CircleDot,
   Scissors,
 } from "lucide-react";
-import { downloadBlob, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadBlob, downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
 
 interface TeleprompterModalProps {
   isOpen: boolean;
@@ -153,6 +153,8 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
       if (recordTimerRef.current) clearInterval(recordTimerRef.current);
       setRecordingSeconds(0);
       setIsRecordingVideo(false);
+      // Directly download to user's device without requiring an extra click
+      downloadDirectVideo(blob, "teleprompter_news_video");
     };
 
     mediaRecorderRef.current = recorder;

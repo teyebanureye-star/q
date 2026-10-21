@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import {
   downloadBlob,
+  downloadDirectVideo,
   downloadUrl,
   openCapCutWithMedia,
   mergeImageAndAudioToVideo,
@@ -67,6 +68,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       });
 
       setExportedVideoBlob(blob);
+      // Directly download to user's device without requiring a second click
+      downloadDirectVideo(blob, "broadcast_video");
     } catch (err) {
       console.warn("Video merge error:", err);
     } finally {
