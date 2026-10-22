@@ -34,10 +34,12 @@ class StudioAudioEngine {
   private baseMusicVolume = 0.35;
   private baseSfxVolume = 0.85;
 
-  // Currently playing voice source
+  // Currently playing voice source & Real-time prosody parameters
   private currentVoiceSource: AudioBufferSourceNode | null = null;
   private currentVoiceAudioEl: HTMLAudioElement | null = null;
   private isSpeechSynthesisSpeaking = false;
+  private currentSpeechRate = 1.0;
+  private currentSpeechPitch = 1.0;
 
   // MediaRecorder for exporting combined master mix
   private destinationNode: MediaStreamAudioDestinationNode | null = null;
@@ -210,6 +212,44 @@ class StudioAudioEngine {
   }
 
   /**
+   * Dynamically adjust reading pace and prosody in real-time
+   */
+  public setSpeechRate(rate: number) {
+    this.currentSpeechRate = Math.max(0.6, Math.min(1.6, rate));
+    if (this.currentVoiceSource && this.ctx) {
+      try {
+        this.currentVoiceSource.playbackRate.setTargetAtTime(this.currentSpeechRate, this.ctx.currentTime, 0.04);
+      } catch (e) {
+        console.warn("Could not dynamically update playbackRate:", e);
+      }
+    }
+    if (this.currentVoiceAudioEl) {
+      this.currentVoiceAudioEl.playbackRate = this.currentSpeechRate;
+    }
+  }
+
+  public getSpeechRate(): number {
+    return this.currentSpeechRate;
+  }
+
+  /**
+   * Dynamically adjust pitch / vocal formant in real-time
+   */
+  public setSpeechPitch(pitch: number) {
+    this.currentSpeechPitch = Math.max(0.7, Math.min(1.3, pitch));
+    if (this.currentVoiceSource && this.ctx) {
+      try {
+        const detuneCents = 1200 * Math.log2(this.currentSpeechPitch);
+        if (Number.isFinite(detuneCents)) {
+          this.currentVoiceSource.detune.setTargetAtTime(detuneCents, this.ctx.currentTime, 0.04);
+        }
+      } catch (e) {
+        console.warn("Could not dynamically update detune:", e);
+      }
+    }
+  }
+
+  /**
    * Play Breaking News Signature Stinger ("BEE-BEE-BOOM" brass stinger)
    */
   public playIntroStinger(): Promise<void> {
@@ -297,17 +337,465 @@ class StudioAudioEngine {
     this.init();
     if (!this.ctx || !this.sfxGain || type === "none") return;
 
-    if (type === "breaking_alert") {
-      await this.playIntroStinger();
-    } else if (type === "news_intro") {
-      await this.playNewsIntroFanfare();
-    } else if (type === "clock_chime") {
-      await this.playClockChimePips();
-    } else if (type === "transition_swoosh") {
-      await this.playTransitionSwoosh();
-    } else if (type === "social_ping") {
-      await this.playSocialPing();
+    switch (type) {
+      case "etv_news_intro":
+        await this.playEtvNewsIntro();
+        break;
+      case "etv_breaking_intro":
+        await this.playEtvBreakingIntro();
+        break;
+      case "etv_outro_stinger":
+        await this.playEtvOutroStinger();
+        break;
+      case "amhara_media_intro":
+        await this.playAmharaMediaIntro();
+        break;
+      case "amhara_media_bulletin":
+        await this.playAmharaMediaBulletin();
+        break;
+      case "amhara_media_outro":
+        await this.playAmharaMediaOutro();
+        break;
+      case "breaking_alert":
+        await this.playIntroStinger();
+        break;
+      case "news_intro":
+        await this.playNewsIntroFanfare();
+        break;
+      case "clock_chime":
+        await this.playClockChimePips();
+        break;
+      case "transition_swoosh":
+        await this.playTransitionSwoosh();
+        break;
+      case "social_ping":
+        await this.playSocialPing();
+        break;
     }
+  }
+
+  /**
+   * ETV Grand News Fanfare (የኢትዮጵያ ቴሌቪዥን ዜና መክፈቻ)
+   * Majestic brass fanfare with orchestral timpani roll and national television brass swell
+   */
+  public playEtvNewsIntro(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // 1. Timpani drum roll leading in (0s to 0.45s)
+      [0, 0.09, 0.18, 0.27, 0.36, 0.45].forEach((t, i) => {
+        const timpaniOsc = this.ctx!.createOscillator();
+        const timpaniGain = this.ctx!.createGain();
+        timpaniOsc.type = "sine";
+        timpaniOsc.frequency.setValueAtTime(95 - i * 3, now + t);
+        timpaniOsc.frequency.exponentialRampToValueAtTime(55, now + t + 0.1);
+
+        const vol = 0.15 + (i / 5) * 0.35;
+        timpaniGain.gain.setValueAtTime(vol, now + t);
+        timpaniGain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.12);
+
+        timpaniOsc.connect(timpaniGain);
+        timpaniGain.connect(this.sfxGain!);
+        timpaniOsc.start(now + t);
+        timpaniOsc.stop(now + t + 0.14);
+      });
+
+      // 2. Ascending ETV signature trumpet/brass fanfare notes (D4 -> F#4 -> A4 -> D5 -> F#5)
+      const brassNotes = [
+        { time: 0.12, freq: 293.66, dur: 0.15 },
+        { time: 0.28, freq: 369.99, dur: 0.15 },
+        { time: 0.44, freq: 440.0, dur: 0.2 },
+        { time: 0.62, freq: 587.33, dur: 0.35 },
+        { time: 0.88, freq: 739.99, dur: 1.2 },
+      ];
+
+      brassNotes.forEach((n) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const filter = this.ctx!.createBiquadFilter();
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(2200, now + n.time);
+        filter.frequency.exponentialRampToValueAtTime(900, now + n.time + n.dur);
+
+        gain.gain.setValueAtTime(0, now + n.time);
+        gain.gain.linearRampToValueAtTime(0.35, now + n.time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.time + n.dur);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain!);
+
+        osc.start(now + n.time);
+        osc.stop(now + n.time + n.dur + 0.05);
+      });
+
+      // 3. Orchestral Hit & Gong Shimmer at 0.88s
+      const gongTime = now + 0.88;
+      const gongOsc = this.ctx.createOscillator();
+      const gongGain = this.ctx.createGain();
+      gongOsc.type = "triangle";
+      gongOsc.frequency.setValueAtTime(146.83, gongTime);
+      gongOsc.frequency.exponentialRampToValueAtTime(45, gongTime + 1.2);
+
+      gongGain.gain.setValueAtTime(0.65, gongTime);
+      gongGain.gain.exponentialRampToValueAtTime(0.001, gongTime + 1.3);
+
+      gongOsc.connect(gongGain);
+      gongGain.connect(this.sfxGain);
+      gongOsc.start(gongTime);
+      gongOsc.stop(gongTime + 1.35);
+
+      setTimeout(() => resolve(), 2200);
+    });
+  }
+
+  /**
+   * ETV Breaking News Alert (የኢትዮጵያ ቴሌቪዥን ሰበር ዜና)
+   * Rapid high-tension strobe pips + heavy sub boom + urgent major-second herald
+   */
+  public playEtvBreakingIntro(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // 3 High-tension alert pips (ETV breaking strobe)
+      [0, 0.14, 0.28].forEach((t, idx) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(idx === 2 ? 1760 : 1320, now + t);
+
+        gain.gain.setValueAtTime(0.4, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.09);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + t);
+        osc.stop(now + t + 0.1);
+      });
+
+      // Heavy sub-bass drop at 0.42s
+      const dropTime = now + 0.42;
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = "sine";
+      subOsc.frequency.setValueAtTime(160, dropTime);
+      subOsc.frequency.exponentialRampToValueAtTime(38, dropTime + 0.7);
+
+      subGain.gain.setValueAtTime(0.7, dropTime);
+      subGain.gain.exponentialRampToValueAtTime(0.001, dropTime + 0.85);
+
+      subOsc.connect(subGain);
+      subGain.connect(this.sfxGain);
+      subOsc.start(dropTime);
+      subOsc.stop(dropTime + 0.9);
+
+      // Urgent brass power chord stab (D minor to D major punch)
+      [293.66, 349.23, 440.0, 587.33].forEach((f) => {
+        const bOsc = this.ctx!.createOscillator();
+        const bGain = this.ctx!.createGain();
+        bOsc.type = "sawtooth";
+        bOsc.frequency.setValueAtTime(f, dropTime);
+
+        const filter = this.ctx!.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(2400, dropTime);
+        filter.frequency.exponentialRampToValueAtTime(500, dropTime + 1.1);
+
+        bGain.gain.setValueAtTime(0.25, dropTime);
+        bGain.gain.exponentialRampToValueAtTime(0.001, dropTime + 1.2);
+
+        bOsc.connect(filter);
+        filter.connect(bGain);
+        bGain.connect(this.sfxGain!);
+
+        bOsc.start(dropTime);
+        bOsc.stop(dropTime + 1.25);
+      });
+
+      setTimeout(() => resolve(), 1700);
+    });
+  }
+
+  /**
+   * ETV News Outro / Sign-off (የኢትዮጵያ ቴሌቪዥን ዜና መዝጊያ)
+   * Dignified resolution chords with bell chimes and broadcast fade
+   */
+  public playEtvOutroStinger(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // Descending television sign-off bells: A5 -> F#5 -> E5 -> D5
+      const bellPitches = [
+        { time: 0, freq: 880.0 },
+        { time: 0.22, freq: 739.99 },
+        { time: 0.44, freq: 659.25 },
+        { time: 0.68, freq: 587.33 },
+      ];
+
+      bellPitches.forEach((b) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(b.freq, now + b.time);
+
+        gain.gain.setValueAtTime(0.35, now + b.time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + b.time + 0.8);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + b.time);
+        osc.stop(now + b.time + 0.85);
+      });
+
+      // Warm orchestral closing chord (D Major pad)
+      [146.83, 220.0, 293.66, 369.99, 440.0].forEach((f) => {
+        const padOsc = this.ctx!.createOscillator();
+        const padGain = this.ctx!.createGain();
+        padOsc.type = "triangle";
+        padOsc.frequency.setValueAtTime(f, now + 0.68);
+
+        padGain.gain.setValueAtTime(0, now + 0.68);
+        padGain.gain.linearRampToValueAtTime(0.2, now + 0.78);
+        padGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+        padOsc.connect(padGain);
+        padGain.connect(this.sfxGain!);
+        padOsc.start(now + 0.68);
+        padOsc.stop(now + 2.1);
+      });
+
+      setTimeout(() => resolve(), 2200);
+    });
+  }
+
+  /**
+   * Amhara Media Corporation News Opening (አማራ ሚዲያ ኮርፖሬሽን ዜና መክፈቻ)
+   * Iconic Ethiopian pentatonic (Tizita/Bati) krar pluck flourish into powerful broadcast brass
+   */
+  public playAmharaMediaIntro(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // 1. Traditional Ethiopian Pluck Motifs (Krar pentatonic ornament): E4, G4, A4, B4, E5
+      const krarNotes = [
+        { time: 0.0, freq: 329.63 }, // E4
+        { time: 0.1, freq: 392.0 },  // G4
+        { time: 0.2, freq: 440.0 },  // A4
+        { time: 0.3, freq: 493.88 }, // B4
+        { time: 0.42, freq: 659.25 }, // E5
+      ];
+
+      krarNotes.forEach((k) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        const filter = this.ctx!.createBiquadFilter();
+
+        // Plucked blend: square + triangle
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(k.freq, now + k.time);
+
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(1400, now + k.time);
+        filter.Q.setValueAtTime(2.5, now + k.time);
+
+        gain.gain.setValueAtTime(0.4, now + k.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + k.time + 0.28);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain!);
+
+        osc.start(now + k.time);
+        osc.stop(now + k.time + 0.3);
+      });
+
+      // 2. Traditional Double Drum Hit (Kebero rhythm: Dum-Dum) at 0.5s & 0.68s
+      [0.5, 0.68].forEach((dt, idx) => {
+        const drumOsc = this.ctx!.createOscillator();
+        const drumGain = this.ctx!.createGain();
+        drumOsc.type = "sine";
+        drumOsc.frequency.setValueAtTime(idx === 0 ? 82 : 72, now + dt);
+        drumOsc.frequency.exponentialRampToValueAtTime(42, now + dt + 0.2);
+
+        drumGain.gain.setValueAtTime(0.6, now + dt);
+        drumGain.gain.exponentialRampToValueAtTime(0.001, now + dt + 0.24);
+
+        drumOsc.connect(drumGain);
+        drumGain.connect(this.sfxGain!);
+        drumOsc.start(now + dt);
+        drumOsc.stop(now + dt + 0.26);
+      });
+
+      // 3. Grand AMC Television Brass Statement at 0.72s
+      [164.81, 246.94, 329.63, 440.0, 493.88, 659.25].forEach((freq) => {
+        const brassOsc = this.ctx!.createOscillator();
+        const brassGain = this.ctx!.createGain();
+        const filter = this.ctx!.createBiquadFilter();
+
+        brassOsc.type = "sawtooth";
+        brassOsc.frequency.setValueAtTime(freq, now + 0.72);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(2600, now + 0.72);
+        filter.frequency.exponentialRampToValueAtTime(700, now + 2.0);
+
+        brassGain.gain.setValueAtTime(0, now + 0.72);
+        brassGain.gain.linearRampToValueAtTime(0.28, now + 0.78);
+        brassGain.gain.exponentialRampToValueAtTime(0.001, now + 2.1);
+
+        brassOsc.connect(filter);
+        filter.connect(brassGain);
+        brassGain.connect(this.sfxGain!);
+
+        brassOsc.start(now + 0.72);
+        brassOsc.stop(now + 2.15);
+      });
+
+      setTimeout(() => resolve(), 2300);
+    });
+  }
+
+  /**
+   * Amhara Media Corporation Urgent Bulletin (አማራ ሚዲያ ሰበር መግለጫ)
+   * Dynamic Ethiopian breaking herald with fast staccato horn hits
+   */
+  public playAmharaMediaBulletin(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // 4 Rapid staccato brass accents (Bati scale urgency)
+      const staccatos = [
+        { time: 0, freq: 440.0 },
+        { time: 0.12, freq: 493.88 },
+        { time: 0.24, freq: 587.33 },
+        { time: 0.36, freq: 659.25 },
+      ];
+
+      staccatos.forEach((s) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(s.freq, now + s.time);
+
+        gain.gain.setValueAtTime(0.35, now + s.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + s.time + 0.1);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + s.time);
+        osc.stop(now + s.time + 0.12);
+      });
+
+      // Boom impact at 0.48s
+      const boomTime = now + 0.48;
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = "sine";
+      subOsc.frequency.setValueAtTime(130, boomTime);
+      subOsc.frequency.exponentialRampToValueAtTime(35, boomTime + 0.7);
+
+      subGain.gain.setValueAtTime(0.7, boomTime);
+      subGain.gain.exponentialRampToValueAtTime(0.001, boomTime + 0.85);
+
+      subOsc.connect(subGain);
+      subGain.connect(this.sfxGain);
+      subOsc.start(boomTime);
+      subOsc.stop(boomTime + 0.9);
+
+      setTimeout(() => resolve(), 1600);
+    });
+  }
+
+  /**
+   * Amhara Media Corporation Outro (አማራ ሚዲያ ዜና መዝጊያ)
+   * Warm pentatonic resolution chord with acoustic decay
+   */
+  public playAmharaMediaOutro(): Promise<void> {
+    return new Promise((resolve) => {
+      this.init();
+      if (!this.ctx || !this.sfxGain) {
+        resolve();
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+
+      // Traditional plucked sign-off chime: B4 -> A4 -> G4 -> E4
+      const outroPlucks = [
+        { time: 0, freq: 493.88 },
+        { time: 0.2, freq: 440.0 },
+        { time: 0.4, freq: 392.0 },
+        { time: 0.65, freq: 329.63 },
+      ];
+
+      outroPlucks.forEach((p) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(p.freq, now + p.time);
+
+        gain.gain.setValueAtTime(0.3, now + p.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + p.time + 0.6);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(now + p.time);
+        osc.stop(now + p.time + 0.65);
+      });
+
+      // Warm E Minor broadcast swell
+      [82.41, 164.81, 246.94, 329.63].forEach((f) => {
+        const bOsc = this.ctx!.createOscillator();
+        const bGain = this.ctx!.createGain();
+        bOsc.type = "triangle";
+        bOsc.frequency.setValueAtTime(f, now + 0.65);
+
+        bGain.gain.setValueAtTime(0, now + 0.65);
+        bGain.gain.linearRampToValueAtTime(0.2, now + 0.75);
+        bGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+        bOsc.connect(bGain);
+        bGain.connect(this.sfxGain!);
+        bOsc.start(now + 0.65);
+        bOsc.stop(now + 2.05);
+      });
+
+      setTimeout(() => resolve(), 2200);
+    });
   }
 
   /**
@@ -729,6 +1217,11 @@ class StudioAudioEngine {
 
     this.currentVoiceSource = this.ctx.createBufferSource();
     this.currentVoiceSource.buffer = audioBuffer;
+    this.currentVoiceSource.playbackRate.setValueAtTime(this.currentSpeechRate, this.ctx.currentTime);
+    const detuneCents = 1200 * Math.log2(this.currentSpeechPitch);
+    if (Number.isFinite(detuneCents)) {
+      this.currentVoiceSource.detune.setValueAtTime(detuneCents, this.ctx.currentTime);
+    }
     this.currentVoiceSource.connect(this.voiceGain);
 
     this.duckMusic(true);
@@ -766,6 +1259,11 @@ class StudioAudioEngine {
 
       this.currentVoiceSource = this.ctx.createBufferSource();
       this.currentVoiceSource.buffer = audioBuffer;
+      this.currentVoiceSource.playbackRate.setValueAtTime(this.currentSpeechRate, this.ctx.currentTime);
+      const urlDetuneCents = 1200 * Math.log2(this.currentSpeechPitch);
+      if (Number.isFinite(urlDetuneCents)) {
+        this.currentVoiceSource.detune.setValueAtTime(urlDetuneCents, this.ctx.currentTime);
+      }
       this.currentVoiceSource.connect(this.voiceGain);
 
       this.duckMusic(true);

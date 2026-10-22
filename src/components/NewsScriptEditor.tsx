@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   FileText,
   Sparkles,
@@ -18,10 +18,18 @@ import {
   Camera,
   Lock,
   Scissors,
+  HeartPulse,
+  PenLine,
+  CheckCircle2,
 } from "lucide-react";
-import { NewsScriptPreset } from "../types/studio";
+import { NewsScriptPreset, MusicBedType } from "../types/studio";
 import { useLanguage } from "../context/LanguageContext";
 import { openCapCut } from "../utils/mediaMerger";
+import {
+  analyzeScriptSentiment,
+  TONE_DEFINITIONS,
+  EmotionalToneType,
+} from "../utils/sentimentAnalyzer";
 
 interface NewsScriptEditorProps {
   script: string;
@@ -44,6 +52,11 @@ interface NewsScriptEditorProps {
   onOpenGraphics?: () => void;
   onOpen3DStudio?: () => void;
   isAdmin?: boolean;
+  onApplyToneSettings?: (toneSettings: {
+    anchorId: string;
+    speechRate: number;
+    musicBed: MusicBedType;
+  }) => void;
 }
 
 export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
@@ -67,10 +80,42 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenGraphics,
   onOpen3DStudio,
   isAdmin = false,
+  onApplyToneSettings,
 }) => {
   const { language } = useLanguage();
   const isEn = language === "en";
   const [copied, setCopied] = useState(false);
+  const [showEmotionalTone, setShowEmotionalTone] = useState(false);
+  const [toneApplied, setToneApplied] = useState(false);
+
+  // Analyze script sentiment and sentence segments
+  const sentimentAnalysis = useMemo(() => {
+    return analyzeScriptSentiment(script);
+  }, [script]);
+
+  const handleApplyDominantTone = () => {
+    if (!onApplyToneSettings) return;
+    const rec = sentimentAnalysis.recommendedTone;
+    onApplyToneSettings({
+      anchorId: rec.recommendedAnchorId,
+      speechRate: rec.recommendedRate,
+      musicBed: rec.recommendedMusicBed,
+    });
+    setToneApplied(true);
+    setTimeout(() => setToneApplied(false), 2200);
+  };
+
+  const handleApplySegmentTone = (toneType: EmotionalToneType) => {
+    if (!onApplyToneSettings) return;
+    const toneDef = TONE_DEFINITIONS[toneType];
+    onApplyToneSettings({
+      anchorId: toneDef.recommendedAnchorId,
+      speechRate: toneDef.recommendedRate,
+      musicBed: toneDef.recommendedMusicBed,
+    });
+    setToneApplied(true);
+    setTimeout(() => setToneApplied(false), 2200);
+  };
 
   const handleCopy = () => {
     if (!script) return;
@@ -112,19 +157,140 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
         </div>
       </div>
 
-      {/* Main Textarea */}
+      {/* Main Textarea OR Color-Coded Emotional Tone Analysis View */}
       <div className="relative">
-        <textarea
-          value={script}
-          onChange={(e) => setScript(e.target.value)}
-          placeholder={
-            isEn
-              ? "Type or paste your news script here..."
-              : "የሚነበበውን የዜና ጽሑፍ እዚህ ይጻፉ ወይም ይለጥፉ..."
-          }
-          rows={7}
-          className="w-full bg-neutral-950 text-neutral-100 rounded-lg p-3.5 border border-neutral-800/90 focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/40 outline-none transition-all resize-y text-sm sm:text-base leading-relaxed placeholder:text-neutral-600 font-sans"
-        />
+        {showEmotionalTone ? (
+          <div className="bg-neutral-950 rounded-lg p-3 sm:p-3.5 border border-amber-500/50 space-y-3 shadow-inner">
+            {/* Tone Header & Voice Recommendation Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-neutral-800">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Dominant Tone Pill */}
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold ${sentimentAnalysis.recommendedTone.badgeBg} ${sentimentAnalysis.recommendedTone.badgeText} ${sentimentAnalysis.recommendedTone.borderClass}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${sentimentAnalysis.recommendedTone.dotColor} animate-pulse`} />
+                  <span>
+                    {isEn ? sentimentAnalysis.recommendedTone.labelEnglish : sentimentAnalysis.recommendedTone.labelAmharic}
+                  </span>
+                </div>
+
+                {/* Recommended Anchor */}
+                <span className="text-xs text-neutral-300 font-medium">
+                  {isEn ? "Recommended:" : "ምርጥ አንባቢ፦"}{" "}
+                  <strong className="text-amber-400 font-bold">
+                    {sentimentAnalysis.recommendedTone.recommendedAnchorName}
+                  </strong>
+                </span>
+              </div>
+
+              {/* Action Controls */}
+              <div className="flex items-center gap-2">
+                {onApplyToneSettings && (
+                  <button
+                    type="button"
+                    onClick={handleApplyDominantTone}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg font-bold transition-all cursor-pointer shadow-sm ${
+                      toneApplied
+                        ? "bg-emerald-500 text-neutral-950"
+                        : "bg-amber-500 hover:bg-amber-400 text-neutral-950"
+                    }`}
+                  >
+                    {toneApplied ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{isEn ? "Applied" : "ተተግብሯል"}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{isEn ? "Apply Voice Style" : "ድምፁን ተግብር"}</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowEmotionalTone(false)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 transition-colors font-medium cursor-pointer"
+                >
+                  <PenLine className="w-3 h-3 text-neutral-400" />
+                  <span>{isEn ? "Edit" : "አርትዕ"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Distribution Badges */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              {(Object.keys(sentimentAnalysis.toneCounts) as EmotionalToneType[]).map((t) => {
+                const count = sentimentAnalysis.toneCounts[t];
+                if (count === 0) return null;
+                const def = TONE_DEFINITIONS[t];
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleApplySegmentTone(t)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border transition-colors cursor-pointer ${def.badgeBg} ${def.badgeText} ${def.borderClass}`}
+                    title={isEn ? `Apply ${def.labelEnglish}` : `${def.labelAmharic} ተግብር`}
+                  >
+                    {isEn ? def.labelEnglish.split(" ")[1] : def.labelAmharic.split(" ")[1]}: {count}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Color-Coded Script Sentences List */}
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {sentimentAnalysis.segments.length === 0 ? (
+                <p className="text-xs text-neutral-500 italic py-4 text-center">
+                  {isEn ? "Script is empty" : "የዜና ጽሑፍ አልገባም"}
+                </p>
+              ) : (
+                sentimentAnalysis.segments.map((seg) => {
+                  const def = TONE_DEFINITIONS[seg.tone];
+                  return (
+                    <div
+                      key={seg.id}
+                      onClick={() => handleApplySegmentTone(seg.tone)}
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer group hover:brightness-110 ${def.highlightClass} ${def.borderClass}`}
+                    >
+                      <div className="flex items-center justify-between gap-2 pb-1">
+                        <span className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.2 rounded border ${def.badgeBg} ${def.badgeText} ${def.borderClass}`}>
+                          {def.labelAmharic.split(" ")[1]}
+                        </span>
+                        {seg.matchedKeywords.length > 0 && (
+                          <div className="flex items-center gap-1">
+                            {seg.matchedKeywords.slice(0, 3).map((kw, i) => (
+                              <span key={i} className="text-[9px] font-mono px-1 rounded bg-black/40 text-neutral-300">
+                                #{kw}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm leading-relaxed text-neutral-100 font-sans">
+                        {seg.text}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : (
+          <textarea
+            value={script}
+            onChange={(e) => setScript(e.target.value)}
+            placeholder={
+              isEn
+                ? "Type or paste your news script here..."
+                : "የሚነበበውን የዜና ጽሑፍ እዚህ ይጻፉ ወይም ይለጥፉ..."
+            }
+            rows={7}
+            className="w-full bg-neutral-950 text-neutral-100 rounded-lg p-3.5 border border-neutral-800/90 focus:border-amber-500/80 focus:ring-1 focus:ring-amber-500/40 outline-none transition-all resize-y text-sm sm:text-base leading-relaxed placeholder:text-neutral-600 font-sans"
+          />
+        )}
 
         {/* Action Bar Row 1: Metrics & Quick Actions */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 pb-1">
@@ -141,6 +307,20 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
 
           {/* Quick Tools */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Emotional Tone Quick Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowEmotionalTone(!showEmotionalTone)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg transition-colors border font-semibold cursor-pointer ${
+                showEmotionalTone
+                  ? "bg-amber-500 text-neutral-950 border-amber-400 shadow-sm"
+                  : "bg-neutral-900 hover:bg-neutral-800 text-rose-300 hover:text-rose-200 border-rose-500/30"
+              }`}
+            >
+              <HeartPulse className="w-3.5 h-3.5" />
+              <span>{isEn ? "Tone" : "የስሜት ቃና"}</span>
+            </button>
+
             {/* Normalize */}
             <button
               type="button"
@@ -199,6 +379,20 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {/* Emotional Tone Tool Button */}
+            <button
+              type="button"
+              onClick={() => setShowEmotionalTone(!showEmotionalTone)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all font-bold cursor-pointer ${
+                showEmotionalTone
+                  ? "bg-amber-500 text-neutral-950 shadow-md ring-1 ring-amber-400"
+                  : "bg-neutral-900 hover:bg-rose-950/50 text-rose-300 hover:text-rose-100 border border-rose-600/50"
+              }`}
+            >
+              <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
+              <span>{isEn ? "Emotional Tone" : "የስሜት ቃና (Tone)"}</span>
+            </button>
+
             {/* Dictate */}
             <button
               type="button"

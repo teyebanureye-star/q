@@ -209,9 +209,11 @@ interface Virtual3DStudioModalProps {
   onClose: () => void;
   activeHeadline: string;
   anchorName: string;
+  selectedAnchor?: any;
   audioBlob?: Blob | null;
   audioUrl?: string | null;
   script?: string;
+  estimatedDurationSeconds?: number;
   isPlaying?: boolean;
   onPlayBroadcast?: () => void;
   onStopBroadcast?: () => void;
@@ -264,9 +266,11 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   onClose,
   activeHeadline,
   anchorName,
+  selectedAnchor,
   audioBlob,
   audioUrl,
   script,
+  estimatedDurationSeconds,
   isPlaying,
   onPlayBroadcast,
   onStopBroadcast,
@@ -279,9 +283,11 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   // Audio & Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [isFastExporting, setIsFastExporting] = useState(false);
+  const [studioStatus, setStudioStatus] = useState<string | null>(null);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
   const [recordSeconds, setRecordSeconds] = useState(0);
+  const [totalReadingSeconds, setTotalReadingSeconds] = useState<number>(estimatedDurationSeconds || 25);
   const [isLocalAudioPlaying, setIsLocalAudioPlaying] = useState(false);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -294,15 +300,27 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const globeMeshRef = useRef<THREE.Mesh | null>(null);
   const keyLightRef = useRef<THREE.DirectionalLight | null>(null);
   const onAirLightRef = useRef<THREE.PointLight | null>(null);
+  const anchorGroupRef = useRef<THREE.Group | null>(null);
+  const anchorHeadRef = useRef<THREE.Group | null>(null);
 
   // Recording & Streaming Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<any>(null);
+  const recordSecondsRef = useRef<number>(0);
+  const totalAudioDurationRef = useRef<number>(estimatedDurationSeconds || 25);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const compositeStreamRef = useRef<{ stream: MediaStream; stop: () => void } | null>(null);
+
+  // Keep totalReadingSeconds updated when estimatedDurationSeconds changes
+  useEffect(() => {
+    if (estimatedDurationSeconds && estimatedDurationSeconds > 0) {
+      setTotalReadingSeconds(estimatedDurationSeconds);
+      totalAudioDurationRef.current = estimatedDurationSeconds;
+    }
+  }, [estimatedDurationSeconds]);
 
   // Format seconds to mm:ss
   const formatTime = (secs: number) => {
@@ -453,7 +471,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       setGroup.add(floor);
     }
 
-    // Anchor Microphones
+    // Anchor Microphones with ON AIR illuminated indicator
     [-0.6, 0.6].forEach((xPos) => {
       const standGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 12);
       const stand = new THREE.Mesh(standGeo, metalMat);
@@ -463,9 +481,97 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       const micHead = new THREE.Mesh(micHeadGeo, chromeMat);
       micHead.position.set(xPos, 1.55, 0.3);
 
+      const ringGeo = new THREE.TorusGeometry(0.025, 0.006, 8, 16);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(xPos, 1.58, 0.3);
+      ring.rotation.x = Math.PI / 2;
+
       setGroup.add(stand);
       setGroup.add(micHead);
+      setGroup.add(ring);
     });
+
+    // Stylized 3D Broadcast News Anchor Avatar Seated Behind Desk
+    const anchorGroup = new THREE.Group();
+    anchorGroup.position.set(0, 1.1, -0.4);
+    anchorGroupRef.current = anchorGroup;
+
+    // Tailored Suit Torso
+    const suitMat = new THREE.MeshStandardMaterial({
+      color: theme === "breaking" ? 0x1c1917 : theme === "cyber" ? 0x0f172a : 0x1e293b,
+      roughness: 0.6,
+      metalness: 0.15,
+    });
+    const torsoGeo = new THREE.CylinderGeometry(0.38, 0.44, 0.85, 16);
+    const torso = new THREE.Mesh(torsoGeo, suitMat);
+    torso.position.set(0, 0.42, 0);
+    anchorGroup.add(torso);
+
+    // Shirt & Tie
+    const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+    const shirtGeo = new THREE.BoxGeometry(0.16, 0.35, 0.05);
+    const shirt = new THREE.Mesh(shirtGeo, shirtMat);
+    shirt.position.set(0, 0.65, 0.2);
+    anchorGroup.add(shirt);
+
+    const tieMat = new THREE.MeshStandardMaterial({
+      color: theme === "breaking" ? 0xdc2626 : 0xd97706,
+      roughness: 0.4,
+    });
+    const tieGeo = new THREE.BoxGeometry(0.06, 0.38, 0.04);
+    const tie = new THREE.Mesh(tieGeo, tieMat);
+    tie.position.set(0, 0.62, 0.23);
+    anchorGroup.add(tie);
+
+    // Shoulders
+    const leftShoulderGeo = new THREE.SphereGeometry(0.16, 12, 12);
+    const leftShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
+    leftShoulder.position.set(-0.42, 0.72, 0);
+    anchorGroup.add(leftShoulder);
+
+    const rightShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
+    rightShoulder.position.set(0.42, 0.72, 0);
+    anchorGroup.add(rightShoulder);
+
+    // Arms resting on news desk
+    const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.6, 12);
+    const leftArm = new THREE.Mesh(armGeo, suitMat);
+    leftArm.position.set(-0.35, 0.45, 0.28);
+    leftArm.rotation.x = 0.8;
+    leftArm.rotation.z = -0.3;
+    anchorGroup.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeo, suitMat);
+    rightArm.position.set(0.35, 0.45, 0.28);
+    rightArm.rotation.x = 0.8;
+    rightArm.rotation.z = 0.3;
+    anchorGroup.add(rightArm);
+
+    // Stylized Anchor Head
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.05, 0.02);
+    anchorHeadRef.current = headGroup;
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a5231, roughness: 0.7 });
+    const neckGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.22, 12);
+    const neck = new THREE.Mesh(neckGeo, skinMat);
+    neck.position.set(0, -0.06, 0);
+    headGroup.add(neck);
+
+    const headGeo = new THREE.SphereGeometry(0.24, 20, 20);
+    const head = new THREE.Mesh(headGeo, skinMat);
+    headGroup.add(head);
+
+    // Hair
+    const hairMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9 });
+    const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
+    const hair = new THREE.Mesh(hairGeo, hairMat);
+    hair.position.set(0, 0.06, -0.02);
+    headGroup.add(hair);
+
+    anchorGroup.add(headGroup);
+    setGroup.add(anchorGroup);
 
     // Studio Camera Rig
     const camBoxGeo = new THREE.BoxGeometry(0.3, 0.35, 0.5);
@@ -531,19 +637,52 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       const dt = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Camera transitions / director movement
+      // Cinematic multi-camera director switching (cycles dynamically while reading)
       if (cameraView === "auto") {
-        // Slow cinematic sweep
-        const radius = 7.5 + Math.sin(elapsed * 0.25) * 1.5;
-        const angle = Math.sin(elapsed * 0.15) * 0.45;
-        targetCameraPos.current.x = Math.sin(angle) * radius;
-        targetCameraPos.current.z = Math.cos(angle) * radius;
-        targetCameraPos.current.y = 2.4 + Math.sin(elapsed * 0.2) * 0.6;
+        const isSpeaking = isRecording || isLocalAudioPlaying;
+        if (isSpeaking) {
+          // Every 7 seconds, smoothly switch TV camera perspective
+          const cameraPhase = Math.floor(elapsed / 7) % 4;
+          if (cameraPhase === 0) {
+            // Anchor close-up
+            targetCameraPos.current.set(0, 1.85, 3.8);
+          } else if (cameraPhase === 1) {
+            // Right 45-degree studio dynamic shot
+            targetCameraPos.current.set(2.4, 1.95, 4.8);
+          } else if (cameraPhase === 2) {
+            // Wide studio crane
+            targetCameraPos.current.set(Math.sin(elapsed * 0.12) * 2.5, 3.0, 7.8);
+          } else {
+            // Left 45-degree angle
+            targetCameraPos.current.set(-2.4, 1.95, 4.8);
+          }
+        } else {
+          // Slow idle panoramic sweep
+          const radius = 7.5 + Math.sin(elapsed * 0.25) * 1.5;
+          const angle = Math.sin(elapsed * 0.15) * 0.45;
+          targetCameraPos.current.x = Math.sin(angle) * radius;
+          targetCameraPos.current.z = Math.cos(angle) * radius;
+          targetCameraPos.current.y = 2.4 + Math.sin(elapsed * 0.2) * 0.6;
+        }
       }
 
       currentCameraPos.current.lerp(targetCameraPos.current, 1 - Math.exp(-4.5 * dt));
       camera.position.copy(currentCameraPos.current);
-      camera.lookAt(0, 1.2, 0);
+      camera.lookAt(0, 1.25, 0);
+
+      // Animate Anchor Head & Posture during broadcast reading
+      if (anchorHeadRef.current) {
+        const isSpeaking = isRecording || isLocalAudioPlaying;
+        if (isSpeaking) {
+          // Dynamic speaking head nod & turn matching Amharic broadcast speech rhythm
+          anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.6) * 0.1;
+          anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.2) * 0.04 + 0.02;
+        } else {
+          // Subtle idle breathing motion
+          anchorHeadRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.03;
+          anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.2) * 0.015;
+        }
+      }
 
       // Rotate cyber globe if active
       if (globeMeshRef.current) {
@@ -654,7 +793,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     }
   };
 
-  // Start HD 3D Studio Recording with Broadcast Graphics & Audio Merge
+  // Start HD 3D Studio Recording with Broadcast Graphics & Audio Synchronized with Full News Script
   const handleStartRecording = async (maxDurationSeconds?: number) => {
     if (!rendererRef.current?.domElement) return;
 
@@ -662,13 +801,15 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       recordedChunksRef.current = [];
       const canvas = rendererRef.current.domElement;
 
-      // Create composite stream with live TV broadcast overlay
+      // 1. Create composite stream with live TV broadcast overlay and synchronized subtitles
       let videoStream: MediaStream;
       try {
         const comp = createBroadcastCompositeStream(
           canvas,
-          activeHeadline,
-          anchorName
+          script || activeHeadline,
+          anchorName,
+          () => recordSecondsRef.current,
+          () => totalAudioDurationRef.current || totalReadingSeconds || 30
         );
         compositeStreamRef.current = comp;
         videoStream = comp.stream;
@@ -677,53 +818,98 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
         videoStream = canvas.captureStream(30);
       }
 
+      // 2. Audio Context & Master Destination
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const actx = new AudioCtx();
       audioContextRef.current = actx;
       const dest = actx.createMediaStreamDestination();
 
-      let resolvedAudioUrl = audioUrl;
-      if (!resolvedAudioUrl && audioBlob) {
-        resolvedAudioUrl = URL.createObjectURL(audioBlob);
-      }
-      if (!resolvedAudioUrl) {
-        resolvedAudioUrl = "/audio/sample_dawit_news.wav";
+      let audioBuffer: AudioBuffer | null = null;
+
+      // Check if we already have the generated audio blob for the script
+      if (audioBlob) {
+        try {
+          const ab = await audioBlob.arrayBuffer();
+          audioBuffer = await actx.decodeAudioData(ab);
+        } catch (e) {
+          console.warn("Failed decoding audioBlob:", e);
+        }
+      } else if (audioUrl && audioUrl !== "/audio/sample_dawit_news.wav") {
+        try {
+          const resp = await fetch(audioUrl);
+          const ab = await resp.arrayBuffer();
+          audioBuffer = await actx.decodeAudioData(ab);
+        } catch (e) {
+          console.warn("Failed decoding audioUrl:", e);
+        }
       }
 
-      if (resolvedAudioUrl) {
+      // If audio is not yet synthesized for the complete script written in the editor, request TTS synthesis!
+      if (!audioBuffer) {
+        setStudioStatus("የሙሉ ዜናው ንባብ ድምፅ በማዘጋጀት ላይ...");
         try {
-          const resp = await fetch(resolvedAudioUrl);
-          const ab = await resp.arrayBuffer();
-          const audioBuffer = await actx.decodeAudioData(ab);
-          const bufferSource = actx.createBufferSource();
-          bufferSource.buffer = audioBuffer;
-          bufferSource.connect(dest);
-          bufferSource.connect(actx.destination);
-          bufferSource.onended = () => {
-            handleStopRecording();
-          };
-          bufferSource.start();
-          audioBufferSourceRef.current = bufferSource;
-          setIsLocalAudioPlaying(true);
-        } catch (audioErr) {
-          console.warn("Audio buffer fallback:", audioErr);
-          const audio = new Audio(resolvedAudioUrl);
-          audio.crossOrigin = "anonymous";
-          audioElementRef.current = audio;
-          try {
-            const source = actx.createMediaElementSource(audio);
-            source.connect(dest);
-            source.connect(actx.destination);
-          } catch {}
-          audio.onended = () => handleStopRecording();
-          await audio.play().catch(() => {});
-          setIsLocalAudioPlaying(true);
+          const ttsResp = await fetch("/api/tts/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: script || activeHeadline,
+              voice: selectedAnchor?.geminiVoice || "Fenrir",
+              style: selectedAnchor?.styleDirective || "Ethiopian news anchor",
+              language: "am",
+            }),
+          });
+          if (ttsResp.ok) {
+            const data = await ttsResp.json();
+            if (data.audioBase64) {
+              const binStr = atob(data.audioBase64);
+              const bytes = new Uint8Array(binStr.length);
+              for (let i = 0; i < binStr.length; i++) {
+                bytes[i] = binStr.charCodeAt(i);
+              }
+              audioBuffer = await actx.decodeAudioData(bytes.buffer);
+            }
+          }
+        } catch (ttsErr) {
+          console.warn("TTS fetch fallback in 3D studio:", ttsErr);
         }
+      }
+
+      // Fallback if network or quota issue: use sample audio
+      if (!audioBuffer) {
+        try {
+          const fallbackResp = await fetch(audioUrl || "/audio/sample_dawit_news.wav");
+          const fallbackAb = await fallbackResp.arrayBuffer();
+          audioBuffer = await actx.decodeAudioData(fallbackAb);
+        } catch (fbErr) {
+          console.warn("Fallback sample audio error:", fbErr);
+        }
+      }
+
+      if (audioBuffer) {
+        const fullDuration = audioBuffer.duration;
+        totalAudioDurationRef.current = fullDuration;
+        setTotalReadingSeconds(Math.ceil(fullDuration));
+
+        const bufferSource = actx.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(dest);
+        bufferSource.connect(actx.destination);
+
+        // CONTINUES UNTIL THE READER FINISHES READING THE FULL SCRIPT!
+        bufferSource.onended = () => {
+          handleStopRecording();
+        };
+
+        bufferSource.start();
+        audioBufferSourceRef.current = bufferSource;
+        setIsLocalAudioPlaying(true);
+        setStudioStatus("አንባቢው ሙሉ ዜናውን በማንበብ ላይ ነው...");
       } else if (onPlayBroadcast) {
         onPlayBroadcast();
         setIsLocalAudioPlaying(true);
       }
 
+      // Combine video and audio tracks
       const tracks: MediaStreamTrack[] = [...videoStream.getVideoTracks()];
       const audioTracks = dest.stream.getAudioTracks();
       if (audioTracks.length > 0) {
@@ -755,26 +941,32 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
         setIsRecording(false);
         setIsFastExporting(false);
         setIsLocalAudioPlaying(false);
+        setStudioStatus(null);
         if (recordTimerRef.current) {
           clearInterval(recordTimerRef.current);
           recordTimerRef.current = null;
         }
 
-        // DIRECT DOWNLOAD TO DEVICE IMMEDIATELY without preconditions
+        // DIRECT DOWNLOAD TO DEVICE IMMEDIATELY (unconditional, finished news video)
         downloadDirectVideo(blob, "fana_3d_studio_broadcast");
-        setDownloadSuccessMsg("ቪዲዮው ያለምንም ቅድመ ሁኔታ በቀጥታ ወደ ዲቫይስዎ ወርዶ ተቀምጧል!");
+        setDownloadSuccessMsg("ቪዲዮው አንባቢው ንባቡን እንደጨረሰ በቀጥታ ወደ ዲቫይስዎ ወርዶ ተቀምጧል!");
         setTimeout(() => {
           setDownloadSuccessMsg(null);
-        }, 5000);
+        }, 6000);
       };
 
       recorder.start(100);
       setIsRecording(true);
       setRecordedVideoBlob(null);
       setRecordSeconds(0);
+      recordSecondsRef.current = 0;
 
       recordTimerRef.current = setInterval(() => {
-        setRecordSeconds((s) => s + 1);
+        setRecordSeconds((s) => {
+          const next = s + 1;
+          recordSecondsRef.current = next;
+          return next;
+        });
       }, 1000);
 
       if (maxDurationSeconds && maxDurationSeconds > 0) {
@@ -788,6 +980,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       console.error("3D Studio Recording error:", err);
       setIsRecording(false);
       setIsFastExporting(false);
+      setStudioStatus(null);
     }
   };
 
@@ -819,16 +1012,18 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     setIsLocalAudioPlaying(false);
     setIsRecording(false);
     setIsFastExporting(false);
+    setStudioStatus(null);
   };
 
-  // Direct Fast 1-Click Video Download (e.g. 7 seconds broadcast preview clip directly to device)
-  const handleDirectFastDownload = async (durationSecs: number = 7) => {
+  // Direct Full Broadcast Video Download (continues until reader completes full script)
+  const handleDirectFastDownload = async (customDuration?: number) => {
     if (isRecording || isFastExporting) {
       handleStopRecording();
       return;
     }
     setIsFastExporting(true);
-    await handleStartRecording(durationSecs);
+    // When customDuration is omitted, runs until reader finishes reading full text!
+    await handleStartRecording(customDuration);
   };
 
   if (!isOpen) return null;
@@ -869,20 +1064,20 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               </div>
             )}
 
-            {/* Direct Instant Video Download Button */}
+            {/* Direct Instant Video Download Button (Continues until reader completes full script) */}
             <button
               type="button"
-              onClick={() => handleDirectFastDownload(7)}
+              onClick={() => handleDirectFastDownload()}
               disabled={isFastExporting}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md ${
                 isFastExporting
                   ? "bg-emerald-600 text-white animate-pulse"
                   : "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-950/60"
               }`}
-              title="ያለምንም ቅድመ ሁኔታ ቪዲዮውን በቀጥታ ወደ ዲቫይስዎ ያውርዱ"
+              title="ዜና መጻፊያው ጋ የተጸፈውን ሙሉ አንባቢው እስኪጨርስ በቪዲዮ መቅረፅና በቀጥታ ማውረድ"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>{isFastExporting ? "በማውረድ ላይ..." : "በቀጥታ ቪዲዮ አውርድ"}</span>
+              <span>{isFastExporting ? "በማውረድ ላይ..." : "ሙሉ ቪዲዮ አውርድ"}</span>
             </button>
 
             {/* Play/Stop Audio Button */}
@@ -959,17 +1154,23 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
           </div>
         </div>
 
-        {/* Live Export Status Banner */}
-        {isFastExporting && (
+        {/* Live Export / Recording Status Banner (Synchronized with Reader) */}
+        {(isFastExporting || isRecording) && (
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-neutral-900/95 border border-emerald-500/80 rounded-xl px-4 py-2.5 shadow-2xl backdrop-blur-md flex items-center gap-3 text-xs text-white">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-bold">
-              ቪዲዮው በቀጥታ ወደ ዲቫይስዎ እየወረደ ነው... ({recordSeconds}s)
-            </span>
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            <div className="flex flex-col">
+              <span className="font-bold text-emerald-300">
+                {studioStatus || "አንባቢው ሙሉ ዜናውን በማንበብ ላይ ነው..."}
+              </span>
+              <span className="text-[11px] text-neutral-300 font-mono">
+                የንባብ ሂደት፦ {formatTime(recordSeconds)} / {formatTime(totalReadingSeconds)}
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleStopRecording}
-              className="px-2.5 py-1 rounded-md bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-xs cursor-pointer shadow-md"
+              className="px-2.5 py-1 rounded-md bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-xs cursor-pointer shadow-md shrink-0 ml-1"
+              title="ንባቡን አሁን አቁመው ቪዲዮውን በቀጥታ ያውርዱ"
             >
               አሁን አውርድና ጨርስ
             </button>
@@ -1109,17 +1310,17 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             {/* Direct Instant Download Button in dock */}
             <button
               type="button"
-              onClick={() => handleDirectFastDownload(7)}
+              onClick={() => handleDirectFastDownload()}
               disabled={isFastExporting}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ml-auto sm:ml-0 ${
                 isFastExporting
                   ? "bg-emerald-600 text-white animate-pulse"
                   : "bg-emerald-600 hover:bg-emerald-500 text-white"
               }`}
-              title="ያለምንም ቅድመ ሁኔታ ቪዲዮውን በቀጥታ ወደ ዲቫይስዎ ያውርዱ"
+              title="ዜና መጻፊያው ጋ የተጸፈውን ሙሉ አንባቢው እስኪጨርስ በቪዲዮ መቅረፅና በቀጥታ ማውረድ"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isFastExporting ? "በማውረድ ላይ..." : "ቀጥታ ቪዲዮ አውርድ"}</span>
+              <span>{isFastExporting ? "በማውረድ ላይ..." : "ሙሉ ቪዲዮ አውርድ"}</span>
             </button>
 
             <button

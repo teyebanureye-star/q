@@ -96,7 +96,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
   const [fontSize, setFontSize] = useState<number>(36);
   const [scrollSpeed, setScrollSpeed] = useState<number>(1.5);
   const [isMirrored, setIsMirrored] = useState<boolean>(false);
-  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [textBgMode, setTextBgMode] = useState<"dark" | "green" | "blue">("dark");
   const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null);
 
   // Pure Text Motion Video State (no mic, no camera, full text animation)
@@ -105,15 +105,11 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-
   const textRecorderRef = useRef<MediaRecorder | null>(null);
   const textAnimIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
-      stopCamera();
       stopTextVideoExport();
       return;
     }
@@ -133,10 +129,9 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [isOpen, isPlaying, scrollSpeed]);
 
-  // Clean up camera & text animation on unmount
+  // Clean up text animation on unmount
   useEffect(() => {
     return () => {
-      stopCamera();
       stopTextVideoExport();
     };
   }, []);
@@ -145,38 +140,6 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
-  };
-
-  // Toggle Camera
-  const toggleCamera = async () => {
-    if (isCameraActive) {
-      stopCamera();
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: true,
-        });
-        mediaStreamRef.current = stream;
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = stream;
-        }
-        setIsCameraActive(true);
-      } catch (err) {
-        console.warn("Camera access denied or unavailable:", err);
-      }
-    }
-  };
-
-  const stopCamera = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
   };
 
   const stopTextVideoExport = () => {
@@ -263,22 +226,32 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
       const speedFactor = Math.max(2.4, scrollSpeed * 2.5);
       let currentY = startScrollY;
 
+      const isChromaKey = textBgMode === "green" || textBgMode === "blue";
+
       const renderLoop = () => {
         currentY += speedFactor;
         const progress = Math.min(100, Math.round(((currentY - startScrollY) / totalDistance) * 100));
         setTextVideoProgress(progress);
 
-        // 1. Dark Broadcast Background
-        ctx.fillStyle = "#09090b";
+        // 1. Background Fill
+        if (textBgMode === "green") {
+          ctx.fillStyle = "#00ff00"; // Pure Chroma Key Green
+        } else if (textBgMode === "blue") {
+          ctx.fillStyle = "#0000ff"; // Pure Chroma Key Blue
+        } else {
+          ctx.fillStyle = "#09090b"; // Clean Deep Broadcast Studio Dark
+        }
         ctx.fillRect(0, 0, width, height);
 
-        // 2. Reading Guide Line across the middle
-        ctx.strokeStyle = "rgba(239, 68, 68, 0.45)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(80, height / 2);
-        ctx.lineTo(width - 80, height / 2);
-        ctx.stroke();
+        // 2. Reading Guide Line (for dark mode only)
+        if (!isChromaKey) {
+          ctx.strokeStyle = "rgba(239, 68, 68, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(80, height / 2);
+          ctx.lineTo(width - 80, height / 2);
+          ctx.stroke();
+        }
 
         // 3. Render Amharic Text Lines
         ctx.font = `bold ${effectiveFontSize}px "Nyala", "Noto Sans Ethiopic", system-ui, -apple-system, sans-serif`;
@@ -290,37 +263,47 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           if (!lineText) continue;
           const lineY = i * lineHeight - currentY;
           if (lineY > -lineHeight && lineY < height + lineHeight) {
-            const distFromCenter = Math.abs(lineY - height / 2);
-            if (distFromCenter < lineHeight * 0.75) {
+            if (isChromaKey) {
+              // Crisp high-contrast outline for Chroma Key Overlay
+              ctx.strokeStyle = "#000000";
+              ctx.lineWidth = 6;
+              ctx.strokeText(lineText, width / 2, lineY);
               ctx.fillStyle = "#ffffff";
+              ctx.fillText(lineText, width / 2, lineY);
             } else {
-              ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
+              const distFromCenter = Math.abs(lineY - height / 2);
+              if (distFromCenter < lineHeight * 0.75) {
+                ctx.fillStyle = "#ffffff";
+              } else {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.88)";
+              }
+              ctx.fillText(lineText, width / 2, lineY);
             }
-            ctx.fillText(lineText, width / 2, lineY);
           }
         }
 
-        // 4. Soft Top Shadow Fade
-        const topGrad = ctx.createLinearGradient(0, 0, 0, 100);
-        topGrad.addColorStop(0, "rgba(9, 9, 11, 1)");
-        topGrad.addColorStop(1, "rgba(9, 9, 11, 0)");
-        ctx.fillStyle = topGrad;
-        ctx.fillRect(0, 0, width, 100);
+        // 4. Soft Top and Bottom Shadow Fade (for dark mode)
+        if (!isChromaKey) {
+          const topGrad = ctx.createLinearGradient(0, 0, 0, 100);
+          topGrad.addColorStop(0, "rgba(9, 9, 11, 1)");
+          topGrad.addColorStop(1, "rgba(9, 9, 11, 0)");
+          ctx.fillStyle = topGrad;
+          ctx.fillRect(0, 0, width, 100);
 
-        // 5. Soft Bottom Shadow Fade
-        const btmGrad = ctx.createLinearGradient(0, height - 100, 0, height);
-        btmGrad.addColorStop(0, "rgba(9, 9, 11, 0)");
-        btmGrad.addColorStop(1, "rgba(9, 9, 11, 1)");
-        ctx.fillStyle = btmGrad;
-        ctx.fillRect(0, height - 100, width, 100);
+          const btmGrad = ctx.createLinearGradient(0, height - 100, 0, height);
+          btmGrad.addColorStop(0, "rgba(9, 9, 11, 0)");
+          btmGrad.addColorStop(1, "rgba(9, 9, 11, 1)");
+          ctx.fillStyle = btmGrad;
+          ctx.fillRect(0, height - 100, width, 100);
 
-        // 6. Teleprompter Badge
-        ctx.fillStyle = "rgba(220, 38, 38, 0.95)";
-        drawRoundedRect(ctx, 40, 24, 130, 32, 6);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 13px sans-serif";
-        ctx.fillText("ቴሌፕሮምፕተር", 105, 41);
+          // Teleprompter Badge
+          ctx.fillStyle = "rgba(220, 38, 38, 0.95)";
+          drawRoundedRect(ctx, 40, 24, 130, 32, 6);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 13px sans-serif";
+          ctx.fillText("ቴሌፕሮምፕተር", 105, 41);
+        }
 
         if (currentY < endScrollY) {
           textAnimIdRef.current = requestAnimationFrame(renderLoop);
@@ -470,19 +453,39 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
             </button>
           )}
 
-          {/* Optional Camera Preview Toggle */}
-          <button
-            type="button"
-            onClick={toggleCamera}
-            className={`p-2 rounded-lg transition-all cursor-pointer ${
-              isCameraActive
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/50"
-                : "bg-neutral-900 text-neutral-400 hover:text-white"
-            }`}
-            title="የካሜራ እይታ"
-          >
-            {isCameraActive ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-          </button>
+          {/* Background Mode Selector (Dark, Green Screen, Blue Screen) */}
+          <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setTextBgMode("dark")}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                textBgMode === "dark" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white"
+              }`}
+              title="ጥቁር የስቱዲዮ ዳራ"
+            >
+              ጥቁር
+            </button>
+            <button
+              type="button"
+              onClick={() => setTextBgMode("green")}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                textBgMode === "green" ? "bg-emerald-500 text-neutral-950 shadow-sm" : "text-emerald-400 hover:text-white"
+              }`}
+              title="አረንጓዴ ስክሪን (Green Screen - ለ CapCut ክሮማ ኪይ)"
+            >
+              አረንጓዴ
+            </button>
+            <button
+              type="button"
+              onClick={() => setTextBgMode("blue")}
+              className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                textBgMode === "blue" ? "bg-cyan-500 text-neutral-950 shadow-sm" : "text-cyan-400 hover:text-white"
+              }`}
+              title="ሰማያዊ ስክሪን (Blue Screen)"
+            >
+              ሰማያዊ
+            </button>
+          </div>
 
           {/* Direct CapCut Launcher Button */}
           <button
@@ -527,7 +530,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              stopCamera();
+              stopTextVideoExport();
               onClose();
             }}
             className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer"
@@ -537,20 +540,16 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
         </div>
       </div>
 
-      {/* Prompter Main Content View with Optional Camera PIP/Backdrop */}
-      <div className="relative flex-1 overflow-hidden flex flex-col">
-        {/* Live Camera View */}
-        {isCameraActive && (
-          <div className="absolute top-4 right-4 z-20 w-44 sm:w-60 aspect-video rounded-xl overflow-hidden border-2 border-red-500 shadow-2xl bg-black">
-            <video
-              ref={videoPreviewRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover -scale-x-100"
-            />
-          </div>
-        )}
+      {/* Prompter Main Content View */}
+      <div
+        className={`relative flex-1 overflow-hidden flex flex-col transition-colors ${
+          textBgMode === "green"
+            ? "bg-[#00ff00]"
+            : textBgMode === "blue"
+            ? "bg-[#0000ff]"
+            : "bg-black"
+        }`}
+      >
 
         {/* Prompter Text Scroll Area */}
         <div
@@ -562,7 +561,11 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
         >
           <div className="max-w-4xl mx-auto">
             <p
-              className="text-white font-bold leading-relaxed tracking-wide transition-all"
+              className={`font-bold leading-relaxed tracking-wide transition-all ${
+                textBgMode === "green" || textBgMode === "blue"
+                  ? "text-white [text-shadow:_0_2px_8px_rgb(0_0_0_/_90%),_0_0_2px_rgb(0_0_0_/_90%)]"
+                  : "text-white"
+              }`}
               style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
             >
               {script || "ምንም ጽሑፍ አልተገኘም። እባክዎ በስቱዲዮው ውስጥ የዜና ጽሑፍ ያስገቡ።"}

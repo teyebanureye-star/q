@@ -27,7 +27,7 @@ import {
   Scissors,
 } from "lucide-react";
 import { openCapCutWithMedia } from "./utils/mediaMerger";
-import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry } from "./types/studio";
+import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry, MusicBedType } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
 import {
   normalizeAmharicForSpeech,
@@ -109,7 +109,9 @@ export default function App() {
     autoDucking: true,
     autoEq: true,
     includeIntroStinger: true,
-    introSoundEffect: "breaking_alert",
+    introSoundEffect: "etv_news_intro",
+    includeOutroStinger: true,
+    outroSoundEffect: "etv_outro_stinger",
     sfxVolume: 0.85,
     reverbAmount: 0.2,
   });
@@ -158,6 +160,12 @@ export default function App() {
       }
       if (newPartial.autoEq !== undefined) {
         studioAudio.setAutoEq(newPartial.autoEq);
+      }
+      if (newPartial.speechRate !== undefined) {
+        studioAudio.setSpeechRate(newPartial.speechRate);
+      }
+      if (newPartial.speechPitch !== undefined) {
+        studioAudio.setSpeechPitch(newPartial.speechPitch);
       }
       return updated;
     });
@@ -377,6 +385,8 @@ export default function App() {
 
     studioAudio.init();
     studioAudio.setMusicVolume(settings.musicVolume);
+    studioAudio.setSpeechRate(settings.speechRate);
+    studioAudio.setSpeechPitch(settings.speechPitch);
     studioAudio.setAutoEq(settings.autoEq ?? true);
 
     // Phonetically clean script with custom pronunciation dictionary (for Amharic)
@@ -420,9 +430,19 @@ export default function App() {
         body: JSON.stringify({
           text: spokenText,
           voice: selectedAnchor.geminiVoice,
-          style: isEn
-            ? (selectedAnchor.styleDirectiveEnglish || selectedAnchor.styleDirective)
-            : selectedAnchor.styleDirective,
+          style: (() => {
+            const baseStyle = isEn
+              ? (selectedAnchor.styleDirectiveEnglish || selectedAnchor.styleDirective)
+              : selectedAnchor.styleDirective;
+            if (settings.speechRate <= 0.88) {
+              return `${baseStyle} Deliver in a deliberate, solemn, measured cadence with thoughtful pacing.`;
+            } else if (settings.speechRate >= 1.20) {
+              return `${baseStyle} Deliver in a fast-paced, high-tempo, urgent breaking news delivery.`;
+            } else if (settings.speechRate >= 1.08) {
+              return `${baseStyle} Deliver in a dynamic, brisk broadcast tempo.`;
+            }
+            return baseStyle;
+          })(),
           language: isEn ? "en" : "am",
         }),
       });
@@ -479,7 +499,13 @@ export default function App() {
   };
 
   const finishBroadcast = async () => {
-    // Let background music play for 1 second after voice ends, then stop
+    // 1. Play outro stinger if enabled
+    if (settings.includeOutroStinger && settings.outroSoundEffect && settings.outroSoundEffect !== "none") {
+      setStatusMessage(isEn ? "📺 Playing news outro stinger..." : "📺 የዜና መዝጊያ ጅንግል...");
+      await studioAudio.playSoundEffect(settings.outroSoundEffect);
+    }
+
+    // Let background music play briefly, then stop
     setTimeout(async () => {
       studioAudio.stopMusicBed();
       const recordedBlob = await studioAudio.stopRecording();
@@ -490,13 +516,34 @@ export default function App() {
       }
       setIsPlaying(false);
       setStatusMessage("የዜና ስርጭቱ ተጠናቋል");
-    }, 1200);
+    }, 1000);
+  };
+
+  // Apply voice style & music matching script emotional tone
+  const handleApplyToneSettings = (toneSettings: {
+    anchorId: string;
+    speechRate: number;
+    musicBed: MusicBedType;
+  }) => {
+    const targetAnchor = FANA_ANCHORS.find((a) => a.id === toneSettings.anchorId);
+    if (targetAnchor) {
+      setSelectedAnchor(targetAnchor);
+    }
+    updateSettings({
+      selectedAnchorId: toneSettings.anchorId,
+      speechRate: toneSettings.speechRate,
+      musicBed: toneSettings.musicBed,
+    });
+    setNotification({
+      type: "success",
+      text: isEn ? "Applied voice style matching script tone" : "የስክሪፕቱ የስሜት ቃና እና ድምፅ ተተግብሯል",
+    });
   };
 
   // Preview Intro Stinger only
   const handlePreviewStinger = async () => {
     studioAudio.init();
-    await studioAudio.playIntroStinger();
+    await studioAudio.playSoundEffect(settings.introSoundEffect);
   };
 
   // Export Combined Master Mix Audio
@@ -805,6 +852,7 @@ export default function App() {
               onOpenGraphics={() => setIsGraphicsOpen(true)}
               onOpen3DStudio={() => setIs3DStudioOpen(true)}
               isAdmin={isAdmin}
+              onApplyToneSettings={handleApplyToneSettings}
             />
 
             <StudioControls
@@ -942,9 +990,11 @@ export default function App() {
         onClose={() => setIs3DStudioOpen(false)}
         activeHeadline={script.split("\n")[0] || "የዜና አንባቢ ስቱዲዮው ዜና"}
         anchorName={selectedAnchor.nameAmharic}
+        selectedAnchor={selectedAnchor}
         audioBlob={exportedAudioBlob}
         audioUrl={exportedAudioUrl || selectedAnchor.sampleAudioUrl}
         script={script}
+        estimatedDurationSeconds={durationSeconds}
         isPlaying={isPlaying}
         onPlayBroadcast={handleBroadcast}
         onStopBroadcast={handleStop}

@@ -21,11 +21,17 @@ export interface VoiceAnchor {
 export type MusicBedType = "breaking" | "prime" | "analysis" | "tech" | "none";
 
 export type SoundEffectType =
-  | "breaking_alert"    // 🚨 የሰበር ዜና ማስታወቂያ (Breaking Alert)
-  | "news_intro"         // 🎺 የዜና መግቢያ ጅንግል (News Intro Fanfare)
-  | "clock_chime"        // ⏱️ የዜና ሰዓት ደወል (Top-of-Hour Pips)
-  | "transition_swoosh"  // 💥 የዜና ትራንዚሽን ስዉሽ (Transition Swoosh)
-  | "social_ping"        // 📲 የሶሻል ሚዲያ ኖቲፊኬሽን (Social Ping)
+  | "etv_news_intro"         // 🏛️ ETV ዜና መክፈቻ (ETV Grand News Fanfare)
+  | "etv_breaking_intro"     // 🚨 ETV ሰበር ዜና (ETV Breaking Alert)
+  | "etv_outro_stinger"      // 📺 ETV ዜና መዝጊያ (ETV News Sign-off)
+  | "amhara_media_intro"     // 🦅 አማራ ሚዲያ መክፈቻ (AMC News Theme)
+  | "amhara_media_bulletin"  // ⚡ አማራ ሚዲያ ሰበር (AMC Breaking Bulletin)
+  | "amhara_media_outro"     // 📡 አማራ ሚዲያ መዝጊያ (AMC News Sign-off)
+  | "breaking_alert"         // 🚨 ዓለምአቀፍ ሰበር (Global Breaking Alert)
+  | "news_intro"             // 🎺 ክላሲክ ጅንግል (Classic News Intro)
+  | "clock_chime"            // ⏱️ የሰዓት ደወል (Top-of-Hour Pips)
+  | "transition_swoosh"      // 💥 መሸጋገሪያ ስዉሽ (Transition Swoosh)
+  | "social_ping"            // 📲 ሶሻል ፒንግ (Social Ping)
   | "none";
 
 export interface StudioSettings {
@@ -37,7 +43,9 @@ export interface StudioSettings {
   autoDucking: boolean;    // auto reduce music when speaking
   autoEq?: boolean;        // auto-blend voice & music frequencies for professional studio sound
   includeIntroStinger: boolean;
-  introSoundEffect: SoundEffectType; // Selected Intro Sound Effect
+  introSoundEffect: SoundEffectType; // Selected Intro Sound Effect (ከዜና በፊት)
+  includeOutroStinger: boolean;
+  outroSoundEffect: SoundEffectType; // Selected Outro Sound Effect (ከዜና በኋላ)
   sfxVolume: number;       // Sound effect volume 0 - 1
   reverbAmount: number;    // 0 - 1
   language?: "am" | "en";  // Audio & Interface language mode
