@@ -21,6 +21,7 @@ import {
   HeartPulse,
   PenLine,
   CheckCircle2,
+  Smile,
 } from "lucide-react";
 import { NewsScriptPreset, MusicBedType } from "../types/studio";
 import { useLanguage } from "../context/LanguageContext";
@@ -51,6 +52,7 @@ interface NewsScriptEditorProps {
   onOpenChat?: () => void;
   onOpenGraphics?: () => void;
   onOpen3DStudio?: () => void;
+  onOpenTalkingAvatar?: () => void;
   isAdmin?: boolean;
   onApplyToneSettings?: (toneSettings: {
     anchorId: string;
@@ -79,6 +81,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenChat,
   onOpenGraphics,
   onOpen3DStudio,
+  onOpenTalkingAvatar,
   isAdmin = false,
   onApplyToneSettings,
 }) => {
@@ -457,10 +460,20 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             <button
               type="button"
               onClick={onOpen3DStudio}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-amber-950/40 text-amber-300 hover:text-amber-100 transition-all border border-amber-500/50 font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-all border border-neutral-700 font-bold cursor-pointer"
             >
-              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <Camera className="w-3.5 h-3.5 text-neutral-400" />
               <span>{isEn ? "3D Studio" : "3D ስቱዲዮ"}</span>
+            </button>
+
+            {/* AI Talking Avatar & Photo Animator */}
+            <button
+              type="button"
+              onClick={onOpenTalkingAvatar}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-amber-600/30 via-red-600/30 to-amber-500/30 hover:from-amber-600/50 hover:to-red-600/50 text-amber-200 transition-all border border-amber-500/60 font-bold cursor-pointer shadow-sm"
+            >
+              <Smile className="w-3.5 h-3.5 text-amber-400" />
+              <span>{isEn ? "Talking Avatar" : "ተንቀሳቃሽ ፎቶ (Avatar)"}</span>
             </button>
 
             {/* CapCut Launcher */}

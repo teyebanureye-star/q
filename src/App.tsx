@@ -25,6 +25,7 @@ import {
   Bell,
   ShieldAlert,
   Scissors,
+  Smile,
 } from "lucide-react";
 import { openCapCutWithMedia } from "./utils/mediaMerger";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry, MusicBedType } from "./types/studio";
@@ -51,6 +52,7 @@ import { AudioDictationModal } from "./components/AudioDictationModal";
 import { NewsroomChatModal } from "./components/NewsroomChatModal";
 import { NewsGraphicsModal } from "./components/NewsGraphicsModal";
 import { Virtual3DStudioModal } from "./components/Virtual3DStudioModal";
+import { TalkingAvatarModal } from "./components/TalkingAvatarModal";
 import { StudioAuthGate } from "./components/StudioAuthGate";
 import { useAuth } from "./context/AuthContext";
 import { useLanguage } from "./context/LanguageContext";
@@ -136,6 +138,7 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isGraphicsOpen, setIsGraphicsOpen] = useState<boolean>(false);
   const [is3DStudioOpen, setIs3DStudioOpen] = useState<boolean>(false);
+  const [isTalkingAvatarOpen, setIsTalkingAvatarOpen] = useState<boolean>(false);
 
   // Pronunciation Dictionary State
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>(() => getStoredDictionary());
@@ -772,6 +775,14 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setIsTalkingAvatarOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600/30 to-red-600/30 hover:from-amber-600/50 hover:to-red-600/50 text-amber-200 border border-amber-500/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer shadow-sm"
+                >
+                  <Smile className="w-3.5 h-3.5 text-amber-400" />
+                  <span>ተንቀሳቃሽ ፎቶ (Avatar)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setIsGraphicsOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-purple-300 border border-purple-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
@@ -851,6 +862,7 @@ export default function App() {
               onOpenChat={() => setIsChatOpen(true)}
               onOpenGraphics={() => setIsGraphicsOpen(true)}
               onOpen3DStudio={() => setIs3DStudioOpen(true)}
+              onOpenTalkingAvatar={() => setIsTalkingAvatarOpen(true)}
               isAdmin={isAdmin}
               onApplyToneSettings={handleApplyToneSettings}
             />
@@ -995,6 +1007,16 @@ export default function App() {
         audioUrl={exportedAudioUrl || selectedAnchor.sampleAudioUrl}
         script={script}
         estimatedDurationSeconds={durationSeconds}
+        isPlaying={isPlaying}
+        onPlayBroadcast={handleBroadcast}
+        onStopBroadcast={handleStop}
+      />
+
+      <TalkingAvatarModal
+        isOpen={isTalkingAvatarOpen}
+        onClose={() => setIsTalkingAvatarOpen(false)}
+        script={script}
+        activeHeadline={NEWS_PRESETS[0].headlineAmharic}
         isPlaying={isPlaying}
         onPlayBroadcast={handleBroadcast}
         onStopBroadcast={handleStop}
