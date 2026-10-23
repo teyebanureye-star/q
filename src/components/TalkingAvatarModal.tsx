@@ -11,11 +11,8 @@ import {
   Sparkles,
   Sliders,
   Tv,
-  CheckCircle2,
   Camera,
-  Layers,
   Smile,
-  Move,
 } from "lucide-react";
 import { studioAudio } from "../utils/audioEngine";
 import { downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
@@ -132,7 +129,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
   const [activeAvatarName, setActiveAvatarName] = useState<string>("ጅቦ ዜና አቅራቢ");
 
-  // Mouth & Lip Configuration (Calibrated to natural slender size)
+  // Pure Mouth & Lip Configuration
   const [mouthConfig, setMouthConfig] = useState({
     x: 0.5,
     y: 0.388,
@@ -140,14 +137,13 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     height: 0.038,
   });
 
-  // Animation Tweaks
+  // Audio-reactive Lip Sensitivity
   const [sensitivity, setSensitivity] = useState<number>(1.2);
-  const [bodyMotionIntensity, setBodyMotionIntensity] = useState<number>(1.0);
   const [showMouthGuide, setShowMouthGuide] = useState<boolean>(false);
   const [studioChannel, setStudioChannel] = useState<"etv" | "amc" | "fana">("etv");
   const [studioTheme, setStudioTheme] = useState<"newsroom" | "breaking" | "prime">("newsroom");
 
-  // Dragging state for canvas mouse calibration
+  // Dragging state for interactive canvas mouse calibration
   const [isDraggingMouth, setIsDraggingMouth] = useState<boolean>(false);
 
   // Recording & Video Export State
@@ -216,7 +212,6 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
       setCustomImageUrl(dataUrl);
       setSelectedPresetId("custom");
       setActiveAvatarName(isEn ? "Uploaded Character" : "የገዛ ፎቶ / ገፀ-ባህሪ");
-      // Default natural face mouth position (upper-mid face, slender size)
       setMouthConfig({ x: 0.5, y: 0.38, width: 0.09, height: 0.032 });
       setShowMouthGuide(true);
     };
@@ -286,7 +281,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     setIsDraggingMouth(false);
   };
 
-  // Main Canvas Render Loop (Lip Sync + Studio Frame)
+  // Main Canvas Render Loop (Pure Lip-Sync Only - No Neck or Body Motion)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -303,7 +298,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
       const width = canvas.width;
       const height = canvas.height;
 
-      // 1. Get Live Audio Analyser Energy
+      // 1. Get Live Audio Analyser Energy (Purely Drives Lip Movement)
       let audioEnergy = 0;
       let formantPitch = 0;
 
@@ -330,8 +325,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         }
         formantPitch = freqSum / 55 / 255;
 
-        // Controlled mouth open energy: smooth, subtle, natural
-        audioEnergy = Math.min(1.0, rms * 4.2 * sensitivity);
+        // Controlled mouth open energy: directly driven by audio loudness
+        audioEnergy = Math.min(1.0, rms * 4.4 * sensitivity);
       } else if (isPlaying) {
         // Fallback natural speaking cadence modulation
         audioEnergy =
@@ -340,8 +335,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           0.55;
       }
 
-      // Smooth mouth lerp
-      currentOpenRef.current += (audioEnergy - currentOpenRef.current) * 0.45;
+      // Smooth mouth lerp (responsive to voice pauses)
+      currentOpenRef.current += (audioEnergy - currentOpenRef.current) * 0.48;
       const mouthOpen = Math.max(0, Math.min(1.0, currentOpenRef.current));
 
       // 2. Eye Blinking Logic (every 3.8 to 4.5 seconds, lasting ~130ms)
@@ -387,9 +382,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           ctx.restore();
         }
 
-        // B. Draw Static Crisp Base Anchor Image (STATIONARY STUDIO & DESK!)
-        // The studio monitors, room, walls, and desk stay 100% FIXED & STABLE!
-        // No head clipping or shifting occurs on background pixels!
+        // B. Draw Static Crisp Base Anchor Image (100% FIXED STUDIO, NECK & BODY!)
+        // Zero neck movement, zero head tilt, zero studio background distortion!
         ctx.drawImage(img, imgX, imgY, targetW, targetH);
 
         const currentPreset = AVATAR_PRESETS.find((p) => p.id === selectedPresetId);
@@ -437,8 +431,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           });
         }
 
-        // D. Audio-Reactive Lip-Syncing & Jaw Animation
-        // Strictly isolated to the mouth/lips on the face — ZERO background pixels affected!
+        // D. Audio-Reactive Lip-Syncing Only (Strictly on the Lips)
+        // Only the lips move in sync with the audio volume — NO neck or body movement!
         const mX = imgX + targetW * mouthConfig.x;
         const mY = imgY + targetH * mouthConfig.y;
         const mW = targetW * mouthConfig.width;
@@ -450,12 +444,11 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           const srcMW = img.naturalWidth * mouthConfig.width;
           const srcMH = img.naturalHeight * mouthConfig.height;
 
-          // Controlled subtle jaw drop (never opens into a wide gaping hole!)
-          // Max jaw drop is 6px to 9px at peak volume
-          const maxJawDrop = Math.min(9, Math.max(3.5, mH * 0.35 * bodyMotionIntensity));
+          // Controlled natural jaw drop strictly derived from audio volume
+          const maxJawDrop = Math.min(8.5, Math.max(3, mH * 0.38 * sensitivity));
           const jawDrop = mouthOpen * maxJawDrop;
 
-          // Natural slender inner cavity (tapered ellipse for realistic lip opening)
+          // Natural slender inner cavity
           const cavityW = mW * 0.34 * (1 + (formantPitch - 0.5) * 0.08);
           const cavityH = Math.min(6.5, Math.max(1.5, jawDrop * 0.65));
 
@@ -501,7 +494,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
             ctx.fill();
           }
 
-          // Subtle lower tongue highlight (only when open sufficiently)
+          // Subtle lower tongue highlight
           if (jawDrop > 3.0) {
             ctx.fillStyle = "rgba(175, 50, 54, 0.75)";
             ctx.beginPath();
@@ -518,7 +511,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           }
           ctx.restore();
 
-          // 2. Draw Lower Lip & Chin displaced downwards by jawDrop
+          // 2. Draw Lower Lip displaced downwards by jawDrop
           ctx.save();
           ctx.beginPath();
           ctx.ellipse(
@@ -545,7 +538,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           );
           ctx.restore();
 
-          // 3. Anchor Upper Lip firmly so mustache, upper teeth, and nose remain seamless
+          // 3. Anchor Upper Lip firmly
           ctx.save();
           ctx.beginPath();
           ctx.ellipse(mX, mY - mH * 0.2, mW * 0.44, mH * 0.32, 0, 0, Math.PI * 2);
@@ -717,7 +710,6 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     isOpen,
     isPlaying,
     sensitivity,
-    bodyMotionIntensity,
     mouthConfig,
     showMouthGuide,
     studioChannel,
@@ -811,11 +803,11 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
               <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                 <span>
                   {isEn
-                    ? "AI Talking Photo & Character Animator"
-                    : "ተንቀሳቃሽ የፎቶና ገፀ-ባህሪ ዜና አቅራቢ"}
+                    ? "AI Talking Photo & Lip-Sync Studio"
+                    : "ተንቀሳቃሽ የፎቶ ከንፈር (Lip-Sync) ስቱዲዮ"}
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-950/80 border border-red-500 text-red-300 font-extrabold uppercase">
-                  LIP-SYNC LIVE
+                  AUDIO LIP-SYNC
                 </span>
               </h2>
             </div>
@@ -861,8 +853,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
               {showMouthGuide && (
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-black/80 border border-amber-500/80 text-amber-300 text-[11px] font-medium backdrop-blur-md pointer-events-none shadow-lg">
                   {isEn
-                    ? "Click or drag anywhere on the face to position the mouth"
-                    : "የከንፈሩን ቦታ ለመወሰን ፊቱ ላይ የሚፈልጉት ቦታ ይጫኑ"}
+                    ? "Click or drag on the face to position the mouth"
+                    : "የከንፈሩን ቦታ ለመወሰን ፊቱ ላይ የሚፈልጉትን ቦታ ይጫኑ"}
                 </div>
               )}
             </div>
@@ -1038,12 +1030,12 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
               </div>
             </div>
 
-            {/* Animation & Lip-Sync Controls */}
+            {/* Pure Lip-Sync Tuning Controls */}
             <div className="p-3 rounded-xl bg-neutral-950 border border-neutral-800 space-y-2.5 text-xs">
               <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
                 <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isEn ? "Lip Tuning" : "የከንፈር ስፋትና መጠን ማስተካከያ"}</span>
+                  <span>{isEn ? "Lip-Sync Tuning" : "የከንፈር አቀማመጥና ምላሽ ማስተካከያ"}</span>
                 </span>
                 <button
                   type="button"
@@ -1145,29 +1137,10 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
                 />
               </div>
 
-              {/* Jaw Motion Intensity */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] text-neutral-300 font-medium">
-                  <span>{isEn ? "Speech Jaw Motion:" : "የአገጭ እንቅስቃሴ መጠን፦"}</span>
-                  <span className="font-mono text-neutral-400">
-                    {bodyMotionIntensity.toFixed(1)}x
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="2.0"
-                  step="0.1"
-                  value={bodyMotionIntensity}
-                  onChange={(e) => setBodyMotionIntensity(parseFloat(e.target.value))}
-                  className="w-full accent-amber-500 h-1.5 bg-neutral-800 rounded-lg cursor-pointer"
-                />
-              </div>
-
               {/* Lip-Sync Sensitivity */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] text-neutral-300 font-medium">
-                  <span>{isEn ? "Lip-Sync Sensitivity:" : "የከንፈር ምላሽ ፍጥነት፦"}</span>
+                  <span>{isEn ? "Audio Lip-Sync Sensitivity:" : "የድምፅ ምላሽ ፍጥነት፦"}</span>
                   <span className="font-mono text-amber-400 font-bold">
                     {sensitivity.toFixed(1)}x
                   </span>
