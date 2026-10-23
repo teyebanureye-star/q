@@ -44,13 +44,6 @@ interface AvatarPreset {
     width: number; // 0 to 1
     height: number; // 0 to 1
   };
-  headConfig: {
-    x: number;
-    y: number;
-    radiusX: number;
-    radiusY: number;
-    neckY: number; // Pivot point for head nod/tilt
-  };
   eyesConfig?: {
     leftX: number;
     rightX: number;
@@ -67,8 +60,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "የስቱዲዮ ገፀ-ባህሪ አንባቢ",
     imageUrl: "/images/hyena_anchor.jpg",
     type: "animal",
-    mouthConfig: { x: 0.5, y: 0.385, width: 0.22, height: 0.085 },
-    headConfig: { x: 0.5, y: 0.31, radiusX: 0.23, radiusY: 0.23, neckY: 0.46 },
+    mouthConfig: { x: 0.5, y: 0.388, width: 0.11, height: 0.038 },
     eyesConfig: { leftX: 0.442, rightX: 0.558, y: 0.292, radius: 0.035 },
   },
   {
@@ -78,8 +70,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "አበይት ዜና አቅራቢ",
     imageUrl: "/images/anchor_dawit.jpg",
     type: "human",
-    mouthConfig: { x: 0.507, y: 0.338, width: 0.12, height: 0.05 },
-    headConfig: { x: 0.507, y: 0.27, radiusX: 0.16, radiusY: 0.19, neckY: 0.4 },
+    mouthConfig: { x: 0.507, y: 0.338, width: 0.085, height: 0.032 },
     eyesConfig: { leftX: 0.473, rightX: 0.542, y: 0.252, radius: 0.02 },
   },
   {
@@ -89,8 +80,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "ዋና ዜና አቅራቢ",
     imageUrl: "/images/anchor_aster.jpg",
     type: "human",
-    mouthConfig: { x: 0.535, y: 0.342, width: 0.11, height: 0.05 },
-    headConfig: { x: 0.535, y: 0.27, radiusX: 0.16, radiusY: 0.19, neckY: 0.39 },
+    mouthConfig: { x: 0.535, y: 0.342, width: 0.078, height: 0.03 },
     eyesConfig: { leftX: 0.505, rightX: 0.568, y: 0.262, radius: 0.02 },
   },
   {
@@ -100,8 +90,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "ሰበር ዜና ዘጋቢ",
     imageUrl: "/images/anchor_solomon.jpg",
     type: "human",
-    mouthConfig: { x: 0.508, y: 0.362, width: 0.12, height: 0.055 },
-    headConfig: { x: 0.508, y: 0.29, radiusX: 0.16, radiusY: 0.2, neckY: 0.41 },
+    mouthConfig: { x: 0.508, y: 0.362, width: 0.082, height: 0.032 },
     eyesConfig: { leftX: 0.478, rightX: 0.538, y: 0.282, radius: 0.02 },
   },
   {
@@ -111,8 +100,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "ማህበራዊና ባህል ዘጋቢ",
     imageUrl: "/images/anchor_sofia.jpg",
     type: "human",
-    mouthConfig: { x: 0.535, y: 0.342, width: 0.11, height: 0.05 },
-    headConfig: { x: 0.535, y: 0.27, radiusX: 0.16, radiusY: 0.19, neckY: 0.39 },
+    mouthConfig: { x: 0.535, y: 0.342, width: 0.078, height: 0.03 },
     eyesConfig: { leftX: 0.505, rightX: 0.568, y: 0.262, radius: 0.02 },
   },
   {
@@ -122,8 +110,7 @@ const AVATAR_PRESETS: AvatarPreset[] = [
     roleAmharic: "ትንታኔና ኢኮኖሚ ዘጋቢ",
     imageUrl: "/images/anchor_temesgen.jpg",
     type: "human",
-    mouthConfig: { x: 0.518, y: 0.36, width: 0.11, height: 0.05 },
-    headConfig: { x: 0.518, y: 0.29, radiusX: 0.16, radiusY: 0.2, neckY: 0.42 },
+    mouthConfig: { x: 0.518, y: 0.36, width: 0.082, height: 0.032 },
     eyesConfig: { leftX: 0.485, rightX: 0.552, y: 0.295, radius: 0.02 },
   },
 ];
@@ -145,16 +132,16 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
   const [customImageUrl, setCustomImageUrl] = useState<string | null>(null);
   const [activeAvatarName, setActiveAvatarName] = useState<string>("ጅቦ ዜና አቅራቢ");
 
-  // Mouth & Lip Configuration
+  // Mouth & Lip Configuration (Calibrated to natural slender size)
   const [mouthConfig, setMouthConfig] = useState({
     x: 0.5,
-    y: 0.385,
-    width: 0.22,
-    height: 0.085,
+    y: 0.388,
+    width: 0.11,
+    height: 0.038,
   });
 
   // Animation Tweaks
-  const [sensitivity, setSensitivity] = useState<number>(1.3);
+  const [sensitivity, setSensitivity] = useState<number>(1.2);
   const [bodyMotionIntensity, setBodyMotionIntensity] = useState<number>(1.0);
   const [showMouthGuide, setShowMouthGuide] = useState<boolean>(false);
   const [studioChannel, setStudioChannel] = useState<"etv" | "amc" | "fana">("etv");
@@ -229,8 +216,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
       setCustomImageUrl(dataUrl);
       setSelectedPresetId("custom");
       setActiveAvatarName(isEn ? "Uploaded Character" : "የገዛ ፎቶ / ገፀ-ባህሪ");
-      // Default natural face mouth position (upper-mid face)
-      setMouthConfig({ x: 0.5, y: 0.38, width: 0.14, height: 0.06 });
+      // Default natural face mouth position (upper-mid face, slender size)
+      setMouthConfig({ x: 0.5, y: 0.38, width: 0.09, height: 0.032 });
       setShowMouthGuide(true);
     };
     reader.readAsDataURL(file);
@@ -242,7 +229,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     if (preset) {
       setMouthConfig(preset.mouthConfig);
     } else {
-      setMouthConfig({ x: 0.5, y: 0.38, width: 0.14, height: 0.06 });
+      setMouthConfig({ x: 0.5, y: 0.38, width: 0.09, height: 0.032 });
     }
   };
 
@@ -299,7 +286,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     setIsDraggingMouth(false);
   };
 
-  // Main Canvas Render Loop (Lip Sync + Body Movement + Studio Frame)
+  // Main Canvas Render Loop (Lip Sync + Studio Frame)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -328,7 +315,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         analyser.getByteTimeDomainData(timeData);
         analyser.getByteFrequencyData(freqData);
 
-        // Calculate Root Mean Square (RMS) volume
+        // Root Mean Square (RMS) volume
         let sum = 0;
         for (let i = 0; i < bufferLength; i++) {
           const val = (timeData[i] - 128) / 128;
@@ -336,31 +323,32 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         }
         const rms = Math.sqrt(sum / bufferLength);
 
-        // Low-mid vocal formant frequencies peak
+        // Vocal formant frequency energy
         let freqSum = 0;
         for (let i = 5; i < Math.min(60, bufferLength); i++) {
           freqSum += freqData[i];
         }
         formantPitch = freqSum / 55 / 255;
 
-        audioEnergy = Math.min(1.0, rms * 4.8 * sensitivity);
+        // Controlled mouth open energy: smooth, subtle, natural
+        audioEnergy = Math.min(1.0, rms * 4.2 * sensitivity);
       } else if (isPlaying) {
         // Fallback natural speaking cadence modulation
         audioEnergy =
-          (Math.sin(elapsed * 12) * 0.5 + 0.5) *
-          (Math.sin(elapsed * 4) * 0.4 + 0.6) *
-          0.6;
+          (Math.sin(elapsed * 11) * 0.45 + 0.5) *
+          (Math.sin(elapsed * 3.8) * 0.35 + 0.6) *
+          0.55;
       }
 
       // Smooth mouth lerp
       currentOpenRef.current += (audioEnergy - currentOpenRef.current) * 0.45;
       const mouthOpen = Math.max(0, Math.min(1.0, currentOpenRef.current));
 
-      // 2. Eye Blinking Logic (every 3.8 to 4.6 seconds)
+      // 2. Eye Blinking Logic (every 3.8 to 4.5 seconds, lasting ~130ms)
       eyeBlinkTimerRef.current += 1 / 60;
       if (eyeBlinkTimerRef.current > 4.0) {
         isBlinkingRef.current = true;
-        if (eyeBlinkTimerRef.current > 4.14) {
+        if (eyeBlinkTimerRef.current > 4.13) {
           isBlinkingRef.current = false;
           eyeBlinkTimerRef.current = 0;
         }
@@ -401,61 +389,23 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
 
         // B. Draw Static Crisp Base Anchor Image (STATIONARY STUDIO & DESK!)
         // The studio monitors, room, walls, and desk stay 100% FIXED & STABLE!
+        // No head clipping or shifting occurs on background pixels!
         ctx.drawImage(img, imgX, imgY, targetW, targetH);
 
-        // Active Preset Config or Custom defaults
         const currentPreset = AVATAR_PRESETS.find((p) => p.id === selectedPresetId);
-        const headCfg = currentPreset?.headConfig || {
-          x: 0.5,
-          y: 0.3,
-          radiusX: 0.2,
-          radiusY: 0.22,
-          neckY: 0.44,
-        };
         const eyesCfg = currentPreset?.eyesConfig;
 
-        // C. Calculate Head Motion (Speech Nod & Micro-tilt) — APPLIED TO HEAD ONLY!
-        const speechNod = isPlaying ? mouthOpen * 3.2 * bodyMotionIntensity : 0;
-        const headTilt =
-          (Math.sin(elapsed * 1.5) * 0.012 +
-            (isPlaying ? Math.sin(elapsed * 7) * 0.005 : 0)) *
-          bodyMotionIntensity;
-
-        const headCanvasX = imgX + targetW * headCfg.x;
-        const headCanvasY = imgY + targetH * headCfg.y;
-        const headRadiusX = targetW * headCfg.radiusX;
-        const headRadiusY = targetH * headCfg.radiusY;
-        const neckCanvasY = imgY + targetH * headCfg.neckY;
-
-        // Animate head cutout around the neck pivot without moving the studio walls or desk
-        if (bodyMotionIntensity > 0 && (isPlaying || Math.abs(headTilt) > 0.001)) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.ellipse(headCanvasX, headCanvasY, headRadiusX, headRadiusY, 0, 0, Math.PI * 2);
-          ctx.clip();
-
-          // Pivot around base of neck so only the head tilts/nods
-          ctx.translate(headCanvasX, neckCanvasY);
-          ctx.rotate(headTilt);
-          ctx.translate(-headCanvasX, -neckCanvasY);
-          ctx.translate(0, speechNod);
-
-          // Re-draw head area from source
-          ctx.drawImage(img, imgX, imgY, targetW, targetH);
-          ctx.restore();
-        }
-
-        // D. Eye Blinking (Micro-animation every ~4s)
+        // C. Eye Blinking (Micro-animation strictly on the eyes)
         if (isBlinkingRef.current && eyesCfg) {
           const leftEyeX = imgX + targetW * eyesCfg.leftX;
           const rightEyeX = imgX + targetW * eyesCfg.rightX;
-          const eyeY = imgY + targetH * eyesCfg.y + speechNod;
+          const eyeY = imgY + targetH * eyesCfg.y;
           const eyeRad = targetW * eyesCfg.radius;
 
           [leftEyeX, rightEyeX].forEach((eX) => {
             ctx.save();
             ctx.beginPath();
-            ctx.ellipse(eX, eyeY, eyeRad, eyeRad * 0.72, 0, 0, Math.PI * 2);
+            ctx.ellipse(eX, eyeY, eyeRad, eyeRad * 0.7, 0, 0, Math.PI * 2);
             ctx.clip();
 
             const srcEX =
@@ -487,63 +437,79 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           });
         }
 
-        // E. Audio-Reactive Lip-Syncing & Jaw Animation
+        // D. Audio-Reactive Lip-Syncing & Jaw Animation
+        // Strictly isolated to the mouth/lips on the face — ZERO background pixels affected!
         const mX = imgX + targetW * mouthConfig.x;
-        const mY = imgY + targetH * mouthConfig.y + speechNod;
+        const mY = imgY + targetH * mouthConfig.y;
         const mW = targetW * mouthConfig.width;
         const mH = targetH * mouthConfig.height;
 
-        if (mouthOpen > 0.03) {
+        if (mouthOpen > 0.02) {
           const srcMX = img.naturalWidth * mouthConfig.x;
           const srcMY = img.naturalHeight * mouthConfig.y;
           const srcMW = img.naturalWidth * mouthConfig.width;
           const srcMH = img.naturalHeight * mouthConfig.height;
 
-          const maxJawDrop = mH * 0.85;
+          // Controlled subtle jaw drop (never opens into a wide gaping hole!)
+          // Max jaw drop is 6px to 9px at peak volume
+          const maxJawDrop = Math.min(9, Math.max(3.5, mH * 0.35 * bodyMotionIntensity));
           const jawDrop = mouthOpen * maxJawDrop;
-          const horizontalMod = 1 + (formantPitch - 0.5) * 0.1;
 
-          // 1. Inner Mouth Cavity (Dark, realistic depth with teeth and tongue highlights)
+          // Natural slender inner cavity (tapered ellipse for realistic lip opening)
+          const cavityW = mW * 0.34 * (1 + (formantPitch - 0.5) * 0.08);
+          const cavityH = Math.min(6.5, Math.max(1.5, jawDrop * 0.65));
+
+          // 1. Inner Mouth Cavity (Dark, subtle realistic depth)
           ctx.save();
           ctx.beginPath();
           ctx.ellipse(
             mX,
-            mY + jawDrop * 0.45,
-            (mW * 0.44) * horizontalMod,
-            Math.max(2, (mH * 0.3) * mouthOpen + jawDrop * 0.4),
+            mY + jawDrop * 0.38,
+            cavityW,
+            cavityH,
             0,
             0,
             Math.PI * 2
           );
           const mouthGrad = ctx.createRadialGradient(
             mX,
-            mY + jawDrop * 0.3,
-            2,
+            mY + jawDrop * 0.25,
+            1,
             mX,
-            mY + jawDrop * 0.3,
-            mW * 0.5
+            mY + jawDrop * 0.25,
+            cavityW
           );
-          mouthGrad.addColorStop(0, "#3e0505");
-          mouthGrad.addColorStop(0.55, "#1e0101");
-          mouthGrad.addColorStop(1, "#0a0000");
+          mouthGrad.addColorStop(0, "#2a0404");
+          mouthGrad.addColorStop(0.65, "#140101");
+          mouthGrad.addColorStop(1, "#070000");
           ctx.fillStyle = mouthGrad;
           ctx.fill();
 
-          // Upper teeth highlight
-          ctx.fillStyle = "rgba(242, 242, 242, 0.9)";
-          ctx.beginPath();
-          ctx.ellipse(mX, mY + 1, (mW * 0.28) * horizontalMod, Math.min(4, mH * 0.16), 0, 0, Math.PI);
-          ctx.fill();
-
-          // Lower tongue highlight
-          if (jawDrop > 2.5) {
-            ctx.fillStyle = "rgba(185, 55, 60, 0.8)";
+          // Subtle upper teeth highlight
+          if (cavityH > 2.2) {
+            ctx.fillStyle = "rgba(245, 245, 245, 0.88)";
             ctx.beginPath();
             ctx.ellipse(
               mX,
-              mY + jawDrop * 0.68,
-              (mW * 0.25) * horizontalMod,
-              Math.min(5.5, jawDrop * 0.35),
+              mY + 0.5,
+              cavityW * 0.65,
+              Math.min(2.2, cavityH * 0.35),
+              0,
+              0,
+              Math.PI
+            );
+            ctx.fill();
+          }
+
+          // Subtle lower tongue highlight (only when open sufficiently)
+          if (jawDrop > 3.0) {
+            ctx.fillStyle = "rgba(175, 50, 54, 0.75)";
+            ctx.beginPath();
+            ctx.ellipse(
+              mX,
+              mY + jawDrop * 0.6,
+              cavityW * 0.55,
+              Math.min(2.8, jawDrop * 0.28),
               0,
               0,
               Math.PI
@@ -552,13 +518,13 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           }
           ctx.restore();
 
-          // 2. Draw Lower Lip / Jaw Patch (shifted down by jawDrop)
+          // 2. Draw Lower Lip & Chin displaced downwards by jawDrop
           ctx.save();
           ctx.beginPath();
           ctx.ellipse(
             mX,
-            mY + jawDrop + mH * 0.35,
-            (mW * 0.48) * horizontalMod,
+            mY + jawDrop + mH * 0.45,
+            mW * 0.46,
             mH * 0.52,
             0,
             0,
@@ -571,35 +537,35 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
             srcMX - srcMW / 2,
             srcMY,
             srcMW,
-            srcMH * 1.25,
-            mX - (mW / 2) * horizontalMod,
+            srcMH * 1.3,
+            mX - mW / 2,
             mY + jawDrop - mH * 0.1,
-            mW * horizontalMod,
-            mH * 1.1
+            mW,
+            mH * 1.2
           );
           ctx.restore();
 
-          // 3. Anchor Upper Lip (re-draw upper lip contour seamlessly)
+          // 3. Anchor Upper Lip firmly so mustache, upper teeth, and nose remain seamless
           ctx.save();
           ctx.beginPath();
-          ctx.ellipse(mX, mY - mH * 0.15, (mW * 0.46) * horizontalMod, mH * 0.32, 0, 0, Math.PI * 2);
+          ctx.ellipse(mX, mY - mH * 0.2, mW * 0.44, mH * 0.32, 0, 0, Math.PI * 2);
           ctx.clip();
 
           ctx.drawImage(
             img,
             srcMX - srcMW / 2,
-            srcMY - srcMH * 0.45,
+            srcMY - srcMH * 0.5,
             srcMW,
             srcMH * 0.65,
-            mX - (mW / 2) * horizontalMod,
-            mY - mH * 0.45,
-            mW * horizontalMod,
+            mX - mW / 2,
+            mY - mH * 0.48,
+            mW,
             mH * 0.65
           );
           ctx.restore();
         }
 
-        // F. Interactive Mouth Guide (Calibration)
+        // E. Interactive Mouth Guide (Calibration)
         if (showMouthGuide) {
           ctx.save();
           ctx.strokeStyle = "#eab308";
@@ -619,10 +585,12 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           ctx.roundRect(mX - 60, mY - mH / 2 - 24, 120, 20, 4);
           ctx.fill();
           ctx.fillStyle = "#fef08a";
-          ctx.font = 'bold 11px system-ui, sans-serif';
+          ctx.font = "bold 11px system-ui, sans-serif";
           ctx.textAlign = "center";
           ctx.fillText(
-            `ከንፈር (${Math.round(mouthConfig.x * 100)}%, ${Math.round(mouthConfig.y * 100)}%)`,
+            `ከንፈር (${Math.round(mouthConfig.x * 100)}%, ${Math.round(
+              mouthConfig.y * 100
+            )}%)`,
             mX,
             mY - mH / 2 - 10
           );
@@ -1075,7 +1043,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
               <div className="flex items-center justify-between pb-1 border-b border-neutral-800">
                 <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isEn ? "Lip & Motion Tuning" : "የከንፈርና እንቅስቃሴ ማስተካከያ"}</span>
+                  <span>{isEn ? "Lip Tuning" : "የከንፈር ስፋትና መጠን ማስተካከያ"}</span>
                 </span>
                 <button
                   type="button"
@@ -1139,9 +1107,9 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
                 </div>
                 <input
                   type="range"
-                  min="0.06"
-                  max="0.35"
-                  step="0.005"
+                  min="0.04"
+                  max="0.20"
+                  step="0.004"
                   value={mouthConfig.width}
                   onChange={(e) =>
                     setMouthConfig((prev) => ({
@@ -1153,22 +1121,46 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
                 />
               </div>
 
-              {/* Head Motion Intensity */}
+              {/* Lip Opening Depth / Height */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] text-neutral-300 font-medium">
-                  <span>{isEn ? "Head & Neck Motion:" : "የራስና አንገት እንቅስቃሴ፦"}</span>
+                  <span>{isEn ? "Lip Opening Depth:" : "የከንፈር መከፈት መጠን፦"}</span>
                   <span className="font-mono text-cyan-400 font-bold">
+                    {Math.round(mouthConfig.height * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.015"
+                  max="0.07"
+                  step="0.002"
+                  value={mouthConfig.height}
+                  onChange={(e) =>
+                    setMouthConfig((prev) => ({
+                      ...prev,
+                      height: parseFloat(e.target.value),
+                    }))
+                  }
+                  className="w-full accent-cyan-500 h-1.5 bg-neutral-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Jaw Motion Intensity */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-neutral-300 font-medium">
+                  <span>{isEn ? "Speech Jaw Motion:" : "የአገጭ እንቅስቃሴ መጠን፦"}</span>
+                  <span className="font-mono text-neutral-400">
                     {bodyMotionIntensity.toFixed(1)}x
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="0.0"
+                  min="0.2"
                   max="2.0"
                   step="0.1"
                   value={bodyMotionIntensity}
                   onChange={(e) => setBodyMotionIntensity(parseFloat(e.target.value))}
-                  className="w-full accent-cyan-500 h-1.5 bg-neutral-800 rounded-lg cursor-pointer"
+                  className="w-full accent-amber-500 h-1.5 bg-neutral-800 rounded-lg cursor-pointer"
                 />
               </div>
 
