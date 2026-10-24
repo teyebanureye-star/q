@@ -21,17 +21,22 @@ export interface VoiceAnchor {
 export type MusicBedType = "breaking" | "prime" | "analysis" | "tech" | "none";
 
 export type SoundEffectType =
-  | "etv_news_intro"         // 🏛️ ETV ዜና መክፈቻ (ETV Grand News Fanfare)
-  | "etv_breaking_intro"     // 🚨 ETV ሰበር ዜና (ETV Breaking Alert)
-  | "etv_outro_stinger"      // 📺 ETV ዜና መዝጊያ (ETV News Sign-off)
-  | "amhara_media_intro"     // 🦅 አማራ ሚዲያ መክፈቻ (AMC News Theme)
-  | "amhara_media_bulletin"  // ⚡ አማራ ሚዲያ ሰበር (AMC Breaking Bulletin)
-  | "amhara_media_outro"     // 📡 አማራ ሚዲያ መዝጊያ (AMC News Sign-off)
-  | "breaking_alert"         // 🚨 ዓለምአቀፍ ሰበር (Global Breaking Alert)
+  | "prime_fanfare"          // 🏛️ አበይት ዜና መክፈቻ (Prime Broadcast Fanfare)
+  | "breaking_alert"         // 🚨 ሰበር ዜና ማሳወቂያ (Breaking News Alert)
+  | "broadcast_outro"        // 📺 የዜና ማጠቃለያ (Broadcast Outro)
+  | "urgent_bulletin"        // ⚡ አስቸኳይ መግለጫ (Urgent Bulletin)
+  | "heritage_intro"         // 🎻 ባህላዊ መክፈቻ (Heritage Broadcast Theme)
+  | "acoustic_outro"         // 📡 የዜና ማጠናቀቂያ (Acoustic Outro)
   | "news_intro"             // 🎺 ክላሲክ ጅንግል (Classic News Intro)
   | "clock_chime"            // ⏱️ የሰዓት ደወል (Top-of-Hour Pips)
-  | "transition_swoosh"      // 💥 መሸጋገሪያ ስዉሽ (Transition Swoosh)
-  | "social_ping"            // 📲 ሶሻል ፒንግ (Social Ping)
+  | "transition_swoosh"      // 💥 የስቱዲዮ መሸጋገሪያ (Studio Swoosh)
+  | "social_ping"            // 📲 ዲጂታል ፒንግ (Digital Ping)
+  | "etv_news_intro"         // Legacy alias
+  | "etv_breaking_intro"     // Legacy alias
+  | "etv_outro_stinger"      // Legacy alias
+  | "amhara_media_intro"     // Legacy alias
+  | "amhara_media_bulletin"  // Legacy alias
+  | "amhara_media_outro"     // Legacy alias
   | "none";
 
 export interface StudioSettings {

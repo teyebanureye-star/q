@@ -338,26 +338,29 @@ class StudioAudioEngine {
     if (!this.ctx || !this.sfxGain || type === "none") return;
 
     switch (type) {
+      case "prime_fanfare":
       case "etv_news_intro":
         await this.playEtvNewsIntro();
         break;
+      case "breaking_alert":
       case "etv_breaking_intro":
         await this.playEtvBreakingIntro();
         break;
+      case "broadcast_outro":
       case "etv_outro_stinger":
         await this.playEtvOutroStinger();
         break;
+      case "heritage_intro":
       case "amhara_media_intro":
         await this.playAmharaMediaIntro();
         break;
+      case "urgent_bulletin":
       case "amhara_media_bulletin":
         await this.playAmharaMediaBulletin();
         break;
+      case "acoustic_outro":
       case "amhara_media_outro":
         await this.playAmharaMediaOutro();
-        break;
-      case "breaking_alert":
-        await this.playIntroStinger();
         break;
       case "news_intro":
         await this.playNewsIntroFanfare();

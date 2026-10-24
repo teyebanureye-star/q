@@ -42,7 +42,7 @@ export const NewsroomChatModal: React.FC<NewsroomChatModalProps> = ({
     {
       id: "initial",
       role: "assistant",
-      text: "እንኳን ወደ ፋና የዜና ክፍል AI ረዳት በደህና መጡ! ጽሑፎችን ለማስተካከል፣ የቃለ-መጠይቅ ጥያቄዎችን ለማዘጋጀት ወይም የዜና መረጃዎችን ለማጣራት ምን ላግዝዎት?",
+      text: "እንኳን ወደ ስቱዲዮ የዜና ክፍል AI ረዳት በደህና መጡ! ጽሑፎችን ለማስተካከል፣ የቃለ-መጠይቅ ጥያቄዎችን ለማዘጋጀት ወይም የዜና መረጃዎችን ለማጣራት ምን ላግዝዎት?",
     },
   ]);
   const [inputText, setInputText] = useState("");
@@ -246,7 +246,7 @@ export const NewsroomChatModal: React.FC<NewsroomChatModalProps> = ({
           {isLoading && (
             <div className="flex items-center gap-2 text-xs text-neutral-400 pl-11">
               <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-              <span>የፋና ዜና ክፍል ረዳት በማሰብ ላይ ነው...</span>
+              <span>የዜና ክፍል ረዳት በማሰብ ላይ ነው...</span>
             </div>
           )}
 

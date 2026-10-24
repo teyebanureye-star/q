@@ -111,9 +111,9 @@ export default function App() {
     autoDucking: true,
     autoEq: true,
     includeIntroStinger: true,
-    introSoundEffect: "etv_news_intro",
+    introSoundEffect: "prime_fanfare",
     includeOutroStinger: true,
-    outroSoundEffect: "etv_outro_stinger",
+    outroSoundEffect: "broadcast_outro",
     sfxVolume: 0.85,
     reverbAmount: 0.2,
   });
@@ -926,7 +926,7 @@ export default function App() {
           setScript(newScript);
           setNotification({
             type: "success",
-            text: "የተስተካከለው የፋና ዜና ስክሪፕት በስቱዲዮው ውስጥ ተተክቷል!",
+            text: "የተስተካከለው የዜና ስክሪፕት በስቱዲዮው ውስጥ ተተክቷል!",
           });
         }}
       />

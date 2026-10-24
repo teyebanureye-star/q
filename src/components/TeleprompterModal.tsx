@@ -175,7 +175,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
       ctx.font = `bold ${effectiveFontSize}px "Nyala", "Noto Sans Ethiopic", system-ui, -apple-system, sans-serif`;
 
       const maxWidth = width - 240;
-      const lines = wrapText(ctx, script || "የፋና ብሮድካስቲንግ የቀጥታ ዜና ስርጭት", maxWidth);
+      const lines = wrapText(ctx, script || "የስቱዲዮ የቀጥታ ዜና ስርጭት", maxWidth);
       const lineHeight = effectiveFontSize * 1.55;
       const totalContentHeight = Math.max(height, lines.length * lineHeight);
 

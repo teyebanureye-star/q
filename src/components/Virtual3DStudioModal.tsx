@@ -52,7 +52,7 @@ function drawRoundedRect(
 // Splits full news script into distinct broadcast sentences
 function parseNewsSentences(scriptText: string): string[] {
   if (!scriptText || !scriptText.trim()) {
-    return ["የፋና ብሮድካስቲንግ የቀጥታ ዜና ስርጭት"];
+    return ["የስቱዲዮ የቀጥታ ዜና ስርጭት"];
   }
   const rawParts = scriptText
     .split(/(?<=[።\n!?])\s+/)
@@ -82,7 +82,7 @@ function createBroadcastCompositeStream(
 
   const sentences = parseNewsSentences(fullScript);
   const cleanScriptTicker = sentences.join("   •   ");
-  const fullCrawlerText = `  •  ሰበር ዜና ► ${cleanScriptTicker}   •   ፋና ብሮድካስቲንግ ኮርፖሬት • ${anchor || "የዜና አንባቢ"}   `;
+  const fullCrawlerText = `  •  ሰበር ዜና ► ${cleanScriptTicker}   •   GLOBAL NEWSROOM • ${anchor || "የዜና አንባቢ"}   `;
 
   ctx.font = 'bold 14px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
   const crawlerMetrics = ctx.measureText(fullCrawlerText);
@@ -150,7 +150,7 @@ function createBroadcastCompositeStream(
 
     ctx.fillStyle = "#f59e0b";
     ctx.font = 'bold 12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
-    ctx.fillText(`ፋና ብሮድካስቲንግ • ${anchor || "የዜና አንባቢ"}`, 166, barY + 27);
+    ctx.fillText(`ዜና ስቱዲዮ • ${anchor || "የዜና አንባቢ"}`, 166, barY + 27);
 
     ctx.fillStyle = "#94a3b8";
     ctx.font = "11px monospace";
@@ -948,7 +948,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
         }
 
         // DIRECT DOWNLOAD TO DEVICE IMMEDIATELY (unconditional, finished news video)
-        downloadDirectVideo(blob, "fana_3d_studio_broadcast");
+        downloadDirectVideo(blob, "studio_3d_broadcast");
         setDownloadSuccessMsg("ቪዲዮው አንባቢው ንባቡን እንደጨረሰ በቀጥታ ወደ ዲቫይስዎ ወርዶ ተቀምጧል!");
         setTimeout(() => {
           setDownloadSuccessMsg(null);
@@ -1119,7 +1119,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
             {recordedVideoBlob && (
               <button
                 type="button"
-                onClick={() => downloadDirectVideo(recordedVideoBlob, "fana_3d_studio_broadcast")}
+                onClick={() => downloadDirectVideo(recordedVideoBlob, "studio_3d_broadcast")}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer"
                 title="ቪዲዮውን በድጋሚ ያውርዱ"
               >

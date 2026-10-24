@@ -88,7 +88,7 @@ export const HeadlineGeneratorModal: React.FC<HeadlineGeneratorModalProps> = ({
         {
           id: "2",
           style: "🏛️ አበይት ዜና (Prime Broadcast)",
-          headline: `የፋና አበይት ዜና፤ በ${clean} ዙሪያ ዝርዝር መግለጫ ተሰጠ`,
+          headline: `የሰዓቱ አበይት ዜና፤ በ${clean} ዙሪያ ዝርዝር መግለጫ ተሰጠ`,
           hookNote: "የተሟላ የዋና ዜና አቀራረብ",
         },
         {

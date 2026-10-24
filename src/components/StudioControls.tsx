@@ -45,7 +45,7 @@ interface SoundFxItem {
   id: SoundEffectType;
   labelAmharic: string;
   labelEnglish: string;
-  category: "etv" | "amhara" | "general";
+  category: "all" | "intro" | "alert" | "outro" | "sfx";
   tag: string;
   badgeColor: string;
   isOutroCompatible?: boolean;
@@ -53,108 +53,94 @@ interface SoundFxItem {
 }
 
 const SOUND_EFFECTS: SoundFxItem[] = [
-  // ETV (የኢትዮጵያ ቴሌቪዥን)
   {
-    id: "etv_news_intro",
-    labelAmharic: "🏛️ ETV ዜና መክፈቻ",
-    labelEnglish: "🏛️ ETV News Fanfare",
-    category: "etv",
-    tag: "ETV INTRO",
-    badgeColor: "text-amber-300 bg-amber-950/60 border-amber-800/80",
+    id: "prime_fanfare",
+    labelAmharic: "አበይት ዜና መክፈቻ",
+    labelEnglish: "Prime News Fanfare",
+    category: "intro",
+    tag: "PRIME",
+    badgeColor: "text-amber-400 bg-amber-500/10 border-amber-500/30",
     isIntroCompatible: true,
   },
-  {
-    id: "etv_breaking_intro",
-    labelAmharic: "🚨 ETV ሰበር ዜና",
-    labelEnglish: "🚨 ETV Breaking Alert",
-    category: "etv",
-    tag: "ETV ALERT",
-    badgeColor: "text-red-400 bg-red-950/60 border-red-800/80",
-    isIntroCompatible: true,
-  },
-  {
-    id: "etv_outro_stinger",
-    labelAmharic: "📺 ETV ዜና መዝጊያ",
-    labelEnglish: "📺 ETV News Outro",
-    category: "etv",
-    tag: "ETV OUTRO",
-    badgeColor: "text-blue-300 bg-blue-950/60 border-blue-800/80",
-    isOutroCompatible: true,
-  },
-
-  // Amhara Media Corporation (አማራ ሚዲያ ኮርፖሬሽን / AMC)
-  {
-    id: "amhara_media_intro",
-    labelAmharic: "🦅 አማራ ሚዲያ መክፈቻ",
-    labelEnglish: "🦅 AMC News Theme",
-    category: "amhara",
-    tag: "AMC INTRO",
-    badgeColor: "text-emerald-300 bg-emerald-950/60 border-emerald-800/80",
-    isIntroCompatible: true,
-  },
-  {
-    id: "amhara_media_bulletin",
-    labelAmharic: "⚡ አማራ ሚዲያ ሰበር",
-    labelEnglish: "⚡ AMC Urgent Alert",
-    category: "amhara",
-    tag: "AMC ALERT",
-    badgeColor: "text-orange-400 bg-orange-950/60 border-orange-800/80",
-    isIntroCompatible: true,
-  },
-  {
-    id: "amhara_media_outro",
-    labelAmharic: "📡 አማራ ሚዲያ መዝጊያ",
-    labelEnglish: "📡 AMC News Outro",
-    category: "amhara",
-    tag: "AMC OUTRO",
-    badgeColor: "text-teal-300 bg-teal-950/60 border-teal-800/80",
-    isOutroCompatible: true,
-  },
-
-  // General Studio Effects
   {
     id: "breaking_alert",
-    labelAmharic: "🚨 ዓለምአቀፍ ሰበር",
-    labelEnglish: "🚨 Global Alert",
-    category: "general",
+    labelAmharic: "ሰበር ዜና ማሳወቂያ",
+    labelEnglish: "Breaking Alert",
+    category: "alert",
     tag: "ALERT",
-    badgeColor: "text-red-400 bg-red-950/60 border-red-800/80",
+    badgeColor: "text-red-400 bg-red-500/10 border-red-500/30",
+    isIntroCompatible: true,
+  },
+  {
+    id: "urgent_bulletin",
+    labelAmharic: "አስቸኳይ መግለጫ",
+    labelEnglish: "Urgent Bulletin",
+    category: "alert",
+    tag: "URGENT",
+    badgeColor: "text-orange-400 bg-orange-500/10 border-orange-500/30",
     isIntroCompatible: true,
   },
   {
     id: "news_intro",
-    labelAmharic: "🎺 ክላሲክ ጅንግል",
-    labelEnglish: "🎺 Classic Fanfare",
-    category: "general",
-    tag: "INTRO",
-    badgeColor: "text-amber-300 bg-amber-950/60 border-amber-800/80",
+    labelAmharic: "ክላሲክ ጅንግል",
+    labelEnglish: "Classic Fanfare",
+    category: "intro",
+    tag: "FANFARE",
+    badgeColor: "text-amber-300 bg-amber-500/10 border-amber-500/30",
     isIntroCompatible: true,
   },
   {
+    id: "heritage_intro",
+    labelAmharic: "ባህላዊ መክፈቻ",
+    labelEnglish: "Heritage Herald",
+    category: "intro",
+    tag: "HERALD",
+    badgeColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
+    isIntroCompatible: true,
+  },
+  {
+    id: "broadcast_outro",
+    labelAmharic: "የዜና ማጠቃለያ",
+    labelEnglish: "Broadcast Outro",
+    category: "outro",
+    tag: "OUTRO",
+    badgeColor: "text-blue-400 bg-blue-500/10 border-blue-500/30",
+    isOutroCompatible: true,
+  },
+  {
+    id: "acoustic_outro",
+    labelAmharic: "የዜና ማጠናቀቂያ",
+    labelEnglish: "Acoustic Sign-off",
+    category: "outro",
+    tag: "SIGN-OFF",
+    badgeColor: "text-teal-400 bg-teal-500/10 border-teal-500/30",
+    isOutroCompatible: true,
+  },
+  {
     id: "clock_chime",
-    labelAmharic: "⏱️ የሰዓት ደወል",
-    labelEnglish: "⏱️ Hour Pips",
-    category: "general",
-    tag: "TIME",
-    badgeColor: "text-cyan-300 bg-cyan-950/60 border-cyan-800/80",
+    labelAmharic: "የሰዓት ደወል",
+    labelEnglish: "Top-of-Hour Pips",
+    category: "outro",
+    tag: "PIPS",
+    badgeColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30",
     isOutroCompatible: true,
   },
   {
     id: "transition_swoosh",
-    labelAmharic: "💥 መሸጋገሪያ ስዉሽ",
-    labelEnglish: "💥 Transition",
-    category: "general",
+    labelAmharic: "የስቱዲዮ መሸጋገሪያ",
+    labelEnglish: "Studio Swoosh",
+    category: "sfx",
     tag: "SWOOSH",
-    badgeColor: "text-purple-300 bg-purple-950/60 border-purple-800/80",
+    badgeColor: "text-purple-400 bg-purple-500/10 border-purple-500/30",
     isOutroCompatible: true,
   },
   {
     id: "social_ping",
-    labelAmharic: "📲 ሶሻል ፒንግ",
-    labelEnglish: "📲 Social Ping",
-    category: "general",
-    tag: "PING",
-    badgeColor: "text-emerald-300 bg-emerald-950/60 border-emerald-800/80",
+    labelAmharic: "ዲጂታል ፒንግ",
+    labelEnglish: "Digital Signal",
+    category: "sfx",
+    tag: "SIGNAL",
+    badgeColor: "text-sky-400 bg-sky-500/10 border-sky-500/30",
     isOutroCompatible: true,
   },
 ];
@@ -171,7 +157,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
   const { language } = useLanguage();
   const isEn = language === "en";
   const [activePad, setActivePad] = useState<string | null>(null);
-  const [soundCategory, setSoundCategory] = useState<"all" | "etv" | "amhara" | "general">("all");
+  const [soundCategory, setSoundCategory] = useState<"all" | "intro" | "alert" | "outro" | "sfx">("all");
 
   const triggerSoundboard = (type: SoundEffectType) => {
     setActivePad(type);
@@ -213,22 +199,23 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
             </h3>
           </div>
 
-          {/* Category Tabs: All, ETV, Amhara Media, General */}
+          {/* Category Tabs: All, Intro, Alert, Outro, SFX */}
           <div className="flex items-center gap-1">
             {[
               { id: "all", label: isEn ? "All" : "ሁሉም" },
-              { id: "etv", label: "🏛️ ETV" },
-              { id: "amhara", label: "🦅 አማራ ሚዲያ" },
-              { id: "general", label: isEn ? "Other" : "ሌሎች" },
+              { id: "intro", label: isEn ? "Intros" : "መክፈቻዎች" },
+              { id: "alert", label: isEn ? "Alerts" : "ሰበር ማሳወቂያ" },
+              { id: "outro", label: isEn ? "Outros" : "ማጠቃለያዎች" },
+              { id: "sfx", label: isEn ? "SFX" : "ተፅዕኖዎች" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setSoundCategory(tab.id as any)}
-                className={`px-2 py-0.5 text-[11px] rounded-md font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 text-[11px] rounded-lg font-bold transition-all cursor-pointer ${
                   soundCategory === tab.id
-                    ? "bg-amber-500 text-neutral-950"
-                    : "bg-neutral-900 text-neutral-400 hover:text-white"
+                    ? "bg-amber-500 text-neutral-950 shadow-sm shadow-amber-500/20"
+                    : "bg-neutral-900/90 text-neutral-400 hover:text-white hover:bg-neutral-800 border border-neutral-800/60"
                 }`}
               >
                 {tab.label}
@@ -259,19 +246,16 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               onChange={(e) => updateSettings({ introSoundEffect: e.target.value as SoundEffectType, includeIntroStinger: true })}
               className="w-full bg-neutral-950 text-neutral-200 text-xs rounded-md p-1.5 border border-neutral-700 outline-none focus:border-amber-500"
             >
-              <optgroup label="ETV (የኢትዮጵያ ቴሌቪዥን)">
-                <option value="etv_news_intro">🏛️ ETV ዜና መክፈቻ (Fanfare)</option>
-                <option value="etv_breaking_intro">🚨 ETV ሰበር ዜና (Breaking Alert)</option>
+              <optgroup label={isEn ? "Prime Broadcast Fanfares" : "አበይት የብሮድካስት መክፈቻዎች"}>
+                <option value="prime_fanfare">🏛️ {isEn ? "Prime News Fanfare" : "አበይት ዜና መክፈቻ (Prime Fanfare)"}</option>
+                <option value="news_intro">🎺 {isEn ? "Classic Fanfare" : "ክላሲክ ጅንግል (Classic Fanfare)"}</option>
+                <option value="heritage_intro">🥁 {isEn ? "Heritage Herald" : "ባህላዊ መክፈቻ (Heritage Herald)"}</option>
               </optgroup>
-              <optgroup label="Amhara Media Corporation (አማራ ሚዲያ)">
-                <option value="amhara_media_intro">🦅 አማራ ሚዲያ መክፈቻ (AMC Theme)</option>
-                <option value="amhara_media_bulletin">⚡ አማራ ሚዲያ ሰበር (AMC Alert)</option>
+              <optgroup label={isEn ? "Urgent & Breaking Alerts" : "ሰበርና አስቸኳይ ማሳወቂያዎች"}>
+                <option value="breaking_alert">🚨 {isEn ? "Breaking News Alert" : "ሰበር ዜና ማሳወቂያ (Breaking Alert)"}</option>
+                <option value="urgent_bulletin">⚡ {isEn ? "Urgent Bulletin" : "አስቸኳይ መግለጫ (Urgent Bulletin)"}</option>
               </optgroup>
-              <optgroup label="General / አጠቃላይ">
-                <option value="breaking_alert">🚨 ዓለምአቀፍ ሰበር (Global Alert)</option>
-                <option value="news_intro">🎺 ክላሲክ ጅንግል (Classic Intro)</option>
-                <option value="none">🔇 የለም (None)</option>
-              </optgroup>
+              <option value="none">🔇 {isEn ? "None" : "የለም (None)"}</option>
             </select>
           </div>
 
@@ -291,28 +275,26 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
               </label>
             </div>
             <select
-              value={settings.outroSoundEffect || "etv_outro_stinger"}
+              value={settings.outroSoundEffect || "broadcast_outro"}
               onChange={(e) => updateSettings({ outroSoundEffect: e.target.value as SoundEffectType, includeOutroStinger: true })}
               className="w-full bg-neutral-950 text-neutral-200 text-xs rounded-md p-1.5 border border-neutral-700 outline-none focus:border-cyan-500"
             >
-              <optgroup label="ETV (የኢትዮጵያ ቴሌቪዥን)">
-                <option value="etv_outro_stinger">📺 ETV ዜና መዝጊያ (ETV Outro)</option>
+              <optgroup label={isEn ? "Broadcast Sign-offs & Outros" : "የዜና ማጠቃለያዎችና መዝጊያዎች"}>
+                <option value="broadcast_outro">📺 {isEn ? "Broadcast Outro" : "የዜና ማጠቃለያ (Broadcast Outro)"}</option>
+                <option value="acoustic_outro">📡 {isEn ? "Acoustic Sign-off" : "የዜና ማጠናቀቂያ (Acoustic Sign-off)"}</option>
               </optgroup>
-              <optgroup label="Amhara Media Corporation (አማራ ሚዲያ)">
-                <option value="amhara_media_outro">📡 አማራ ሚዲያ መዝጊያ (AMC Outro)</option>
+              <optgroup label={isEn ? "Studio Cues & Sound FX" : "የስቱዲዮ ምልክቶችና ተፅዕኖዎች"}>
+                <option value="clock_chime">⏱️ {isEn ? "Top-of-Hour Pips" : "የሰዓት ደወል (Top-of-Hour Pips)"}</option>
+                <option value="transition_swoosh">💥 {isEn ? "Studio Swoosh" : "የስቱዲዮ መሸጋገሪያ (Swoosh)"}</option>
+                <option value="social_ping">📲 {isEn ? "Digital Signal" : "ዲጂታል ፒንግ (Digital Signal)"}</option>
               </optgroup>
-              <optgroup label="General / አጠቃላይ">
-                <option value="clock_chime">⏱️ የሰዓት ደወል (Top-of-Hour Pips)</option>
-                <option value="transition_swoosh">💥 መሸጋገሪያ ስዉሽ (Swoosh)</option>
-                <option value="social_ping">📲 ሶሻል ፒንግ (Social Ping)</option>
-                <option value="none">🔇 የለም (None)</option>
-              </optgroup>
+              <option value="none">🔇 {isEn ? "None" : "የለም (None)"}</option>
             </select>
           </div>
         </div>
 
         {/* Live Soundboard Pads Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
           {filteredSounds.map((fx) => {
             const isSelectedIntro = settings.introSoundEffect === fx.id;
             const isSelectedOutro = settings.outroSoundEffect === fx.id;
@@ -329,16 +311,16 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
                   }
                   triggerSoundboard(fx.id);
                 }}
-                className={`group relative p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                className={`group relative p-3 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col justify-between gap-2 select-none ${
                   isSelectedIntro
-                    ? "bg-neutral-900 border-amber-500 shadow-md ring-1 ring-amber-500/50"
+                    ? "bg-gradient-to-b from-neutral-900 to-amber-950/30 border-amber-500/80 shadow-lg shadow-amber-950/30 ring-1 ring-amber-500/40"
                     : isSelectedOutro
-                    ? "bg-neutral-900 border-cyan-500 shadow-md ring-1 ring-cyan-500/50"
-                    : "bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900"
-                } ${isPadTriggered ? "scale-95 brightness-125" : ""}`}
+                    ? "bg-gradient-to-b from-neutral-900 to-cyan-950/30 border-cyan-500/80 shadow-lg shadow-cyan-950/30 ring-1 ring-cyan-500/40"
+                    : "bg-gradient-to-b from-neutral-900/90 to-neutral-950/90 border-white/[0.07] hover:border-white/20 hover:from-neutral-850 hover:to-neutral-900 hover:shadow-md"
+                } ${isPadTriggered ? "scale-[0.97] brightness-125 ring-2 ring-amber-400" : ""}`}
               >
                 <div className="flex items-center justify-between gap-1">
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${fx.badgeColor} font-bold`}>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${fx.badgeColor} font-bold tracking-wider`}>
                     {fx.tag}
                   </span>
                   <button
@@ -347,21 +329,31 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
                       e.stopPropagation();
                       triggerSoundboard(fx.id);
                     }}
-                    className="p-1 rounded-md bg-neutral-800 text-neutral-300 hover:text-white hover:bg-amber-500 hover:text-neutral-950 transition-colors cursor-pointer"
+                    title={isEn ? "Preview FX" : "ድምፁን ሞክር"}
+                    className="w-6 h-6 rounded-lg bg-neutral-800/90 hover:bg-amber-500 text-neutral-300 hover:text-neutral-950 flex items-center justify-center transition-all duration-150 cursor-pointer shadow-sm group-hover:bg-neutral-750"
                   >
-                    <Play className="w-2.5 h-2.5 fill-current" />
+                    <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
                   </button>
                 </div>
 
-                <p className="text-xs font-bold text-white leading-tight truncate">
-                  {isEn ? fx.labelEnglish : fx.labelAmharic}
-                </p>
+                <div>
+                  <p className="text-xs font-bold text-white leading-snug truncate group-hover:text-amber-300 transition-colors">
+                    {isEn ? fx.labelEnglish : fx.labelAmharic}
+                  </p>
+                </div>
 
-                {(isSelectedIntro || isSelectedOutro) && (
-                  <div className="text-[9px] font-mono font-bold flex items-center gap-1 pt-1 border-t border-neutral-800">
+                {(isSelectedIntro || isSelectedOutro) ? (
+                  <div className="text-[9px] font-mono font-bold flex items-center gap-1.5 pt-1.5 border-t border-neutral-800/80">
                     <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isSelectedIntro ? "bg-amber-400" : "bg-cyan-400"}`} />
                     <span className={isSelectedIntro ? "text-amber-400" : "text-cyan-400"}>
                       {isSelectedIntro ? (isEn ? "Intro Pick" : "የተመረጠ መግቢያ") : (isEn ? "Outro Pick" : "የተመረጠ መዝጊያ")}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[9px] font-mono text-neutral-500 pt-1.5 border-t border-neutral-800/40 flex items-center justify-between">
+                    <span>{fx.isOutroCompatible ? (isEn ? "OUTRO" : "መዝጊያ") : (isEn ? "INTRO" : "መክፈቻ")}</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-neutral-400 text-[8px]">
+                      {isEn ? "TAP TO SET" : "ለመምረጥ ጠቅ ያድርጉ"}
                     </span>
                   </div>
                 )}

@@ -140,7 +140,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
   // Audio-reactive Lip Sensitivity
   const [sensitivity, setSensitivity] = useState<number>(1.2);
   const [showMouthGuide, setShowMouthGuide] = useState<boolean>(false);
-  const [studioChannel, setStudioChannel] = useState<"etv" | "amc" | "fana">("etv");
+  const [broadcastBadge, setBroadcastBadge] = useState<"prime" | "global" | "live24">("prime");
   const [studioTheme, setStudioTheme] = useState<"newsroom" | "breaking" | "prime">("newsroom");
 
   // Dragging state for interactive canvas mouse calibration
@@ -610,27 +610,27 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
       ctx.fillText(isPlaying ? "ቀጥታ ስርጭት" : "ስቱዲዮ ዝግጁ", 56, 46);
       ctx.restore();
 
-      // B. Top-Right Channel Bug
+      // B. Top-Right Broadcast Channel Bug
       ctx.save();
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
       ctx.beginPath();
-      ctx.roundRect(width - 150, 24, 126, 36, 8);
+      ctx.roundRect(width - 165, 24, 140, 36, 8);
       ctx.fill();
 
       ctx.fillStyle =
-        studioChannel === "etv"
-          ? "#3b82f6"
-          : studioChannel === "amc"
-          ? "#10b981"
-          : "#f59e0b";
+        broadcastBadge === "prime"
+          ? "#f59e0b"
+          : broadcastBadge === "global"
+          ? "#38bdf8"
+          : "#ef4444";
       ctx.font = "900 13px system-ui, sans-serif";
       const logoText =
-        studioChannel === "etv"
-          ? "ETV NEWS"
-          : studioChannel === "amc"
-          ? "AMC NEWS"
-          : "FANA TV";
-      ctx.fillText(logoText, width - 136, 46);
+        broadcastBadge === "prime"
+          ? "PRIME NEWS"
+          : broadcastBadge === "global"
+          ? "GLOBAL 24"
+          : "LIVE DESK";
+      ctx.fillText(logoText, width - 150, 46);
       ctx.restore();
 
       // C. Professional Lower-Third News Banner
@@ -686,7 +686,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
       // Scrolling text
       const fullTickerText = `  •  ${sentences.join(
         "   •   "
-      )}   •   ፋና ብሮድካስቲንግ ኮርፖሬት • ${activeAvatarName}  `;
+      )}   •   GLOBAL NEWSROOM • ${activeAvatarName}  `;
       ctx.fillStyle = "#e4e4e7";
       ctx.font = '12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
       ctx.fillText(fullTickerText, tickerX, tickerY + 17);
@@ -712,7 +712,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     sensitivity,
     mouthConfig,
     showMouthGuide,
-    studioChannel,
+    broadcastBadge,
     studioTheme,
     activeAvatarName,
     sentences,
@@ -1156,24 +1156,24 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
                 />
               </div>
 
-              {/* TV Studio Brand Channel */}
+              {/* Broadcast Studio Bug Badge */}
               <div className="pt-2 border-t border-neutral-800 flex items-center justify-between gap-1">
                 <span className="text-[11px] text-neutral-400">
-                  {isEn ? "Studio Logo:" : "የቴሌቪዥን ሎጎ፦"}
+                  {isEn ? "Studio Badge:" : "የስቱዲዮ መለያ፦"}
                 </span>
                 <div className="flex items-center gap-1">
-                  {(["etv", "amc", "fana"] as const).map((ch) => (
+                  {(["prime", "global", "live24"] as const).map((b) => (
                     <button
-                      key={ch}
+                      key={b}
                       type="button"
-                      onClick={() => setStudioChannel(ch)}
+                      onClick={() => setBroadcastBadge(b)}
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all cursor-pointer ${
-                        studioChannel === ch
-                          ? "bg-amber-500 text-neutral-950 font-black"
+                        broadcastBadge === b
+                          ? "bg-amber-500 text-neutral-950 font-black shadow-sm"
                           : "bg-neutral-900 text-neutral-400 hover:text-white"
                       }`}
                     >
-                      {ch}
+                      {b === "prime" ? "PRIME" : b === "global" ? "GLOBAL" : "LIVE 24"}
                     </button>
                   ))}
                 </div>

@@ -110,7 +110,7 @@ export const NEWS_PRESETS: NewsScriptPreset[] = [
 በታላቁ የኢትዮጵያ ሕዳሴ ግድብ ተጨማሪ ተርባይኖች ኃይል ማመንጨት መጀመራቸውን የውኃና ኢነርጂ ሚኒስቴር ይፋ አድርጓል። 
 ይህም የሀገሪቱን የኤሌክትሪክ ኃይል አቅርቦት በከፍተኛ ደረጃ እንደሚያሳድገውና ለጎረቤት ሀገራት የሚላከውን የኃይል መጠን እንደሚያጠናክረው ተገልጿል። 
 ጠቅላይ ሚኒስትሩ በሰጡት መግለጫ የግድቡ ግንባታ የኢትዮጵያውያን የጋራ አሻራና የድል ምልክት መሆኑን አረጋግጠዋል። 
-ዝርዝር መረጃዎችን በየሰዓቱ እናደርሳችኋለን፤ ፋና ዜና አዲስ አበባ።`,
+ዝርዝር መረጃዎችን በየሰዓቱ እናደርሳችኋለን፤ የዜና ስቱዲዮ አዲስ አበባ።`,
     contentEnglish: `Breaking news at this hour: 
 The Ministry of Water and Energy has officially announced that additional commercial turbines have begun generating electricity at the Grand Ethiopian Renaissance Dam. 
 Officials confirm this milestone will substantially elevate nationwide power generation capacity and expand green energy exports to neighboring nations across East Africa. 
@@ -126,7 +126,7 @@ Stay tuned for ongoing updates from our Addis Ababa news desk.`,
     categoryEnglish: "🏛️ Economy & Prime",
     headlineAmharic: "የኢትዮጵያ ንግድ ባንክ እና የውጭ ምንዛሪ ገበያ አዳዲስ አፈጻጸሞች",
     headlineEnglish: "Commercial Bank of Ethiopia Reports Record Fiscal & Foreign Exchange Progress",
-    contentAmharic: `እንደምን አመሻችሁ ክቡራትና ክቡራን፤ የፋና ዋና ዋና ዜናዎች ተጀምረዋል። 
+    contentAmharic: `እንደምን አመሻችሁ ክቡራትና ክቡራን፤ የሰዓቱ አበይት ዜናዎች ተጀምረዋል። 
 የኢትዮጵያ ንግድ ባንክ በዛሬው ዕለት ይፋ ባደረገው መግለጫ፥ በፋይናንስ ዘርፉ የተወሰዱ የማሻሻያ ፖሊሲዎች አበረታች ውጤት እያስመዘገቡ መሆናቸውን አስታውቋል። 
 በተለይም የውጭ ምንዛሪ አቅርቦት ፍሰት መሻሻል ማሳየቱና የቁጠባ ባህል ማደጉ ተመላክቷል። 
 በሌላ በኩል የኢትዮጵያ ብሔራዊ ባንክ የዋጋ ንረትን ለመግታት የጀመራቸው ጥብቅ የገንዘብ ፖሊሲዎች ተጠናክረው እንደሚቀጥሉ አመልክቷል። 
