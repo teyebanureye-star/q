@@ -13,14 +13,13 @@ import {
   Square,
   Video,
   Download,
-  Scissors,
   CircleDot,
   RotateCcw,
   Volume2,
   CheckCircle,
   Zap,
 } from "lucide-react";
-import { downloadBlob, downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadBlob, downloadDirectVideo } from "../utils/mediaMerger";
 
 // Safe rounded rectangle for cross-browser 2D Canvas rendering
 function drawRoundedRect(
@@ -1125,23 +1124,6 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>በድጋሚ አውርድ</span>
-              </button>
-            )}
-
-            {/* CapCut Launcher Button */}
-            {recordedVideoBlob && (
-              <button
-                type="button"
-                onClick={() =>
-                  openCapCutWithMedia({
-                    blob: recordedVideoBlob,
-                    filename: `3d_studio_news_${Date.now()}.mp4`,
-                  })
-                }
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-900 hover:bg-neutral-800 border border-cyan-500/60 text-cyan-300 shadow-md transition-all cursor-pointer"
-              >
-                <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-                <span>CapCut</span>
               </button>
             )}
 

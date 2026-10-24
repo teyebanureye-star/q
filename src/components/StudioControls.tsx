@@ -9,7 +9,6 @@ import {
   Volume2,
   Zap,
   Play,
-  Scissors,
   Activity,
   Gauge,
   RotateCcw,
@@ -17,7 +16,6 @@ import {
 } from "lucide-react";
 import { MusicBedType, SoundEffectType, StudioSettings } from "../types/studio";
 import { useLanguage } from "../context/LanguageContext";
-import { openCapCut } from "../utils/mediaMerger";
 
 interface StudioControlsProps {
   settings: StudioSettings;
@@ -612,7 +610,7 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
         </div>
       </div>
 
-      {/* Music Volume, Auto-Ducking, Export & CapCut */}
+      {/* Music Volume, Auto-Ducking & Export */}
       <div className="pt-2 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="flex items-center gap-2 flex-1 sm:w-44">
@@ -657,16 +655,6 @@ export const StudioControls: React.FC<StudioControlsProps> = ({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* CapCut Launcher */}
-          <button
-            type="button"
-            onClick={openCapCut}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl transition-all cursor-pointer"
-          >
-            <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-            <span>CapCut</span>
-          </button>
-
           {/* Export WAV Button */}
           <button
             type="button"

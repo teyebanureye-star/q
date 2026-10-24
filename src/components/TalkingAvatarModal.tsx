@@ -6,7 +6,6 @@ import {
   Square,
   Video,
   Download,
-  Scissors,
   RotateCcw,
   Sparkles,
   Sliders,
@@ -15,7 +14,7 @@ import {
   Smile,
 } from "lucide-react";
 import { studioAudio } from "../utils/audioEngine";
-import { downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadDirectVideo } from "../utils/mediaMerger";
 import { useLanguage } from "../context/LanguageContext";
 
 interface TalkingAvatarModalProps {
@@ -165,6 +164,13 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
   const eyeBlinkTimerRef = useRef<number>(0);
   const isBlinkingRef = useRef<boolean>(false);
 
+  // Natural head & neck kinematics (conversational nods, breath, and posture tilt)
+  const headMotionRef = useRef<{
+    tilt: number;
+    nod: number;
+    sway: number;
+  }>({ tilt: 0, nod: 0, sway: 0 });
+
   // Parse script sentences for lower-third synchronization
   const sentences = useMemo(() => {
     if (!script.trim()) return ["የቀጥታ የዜና ስርጭት በመካሄድ ላይ ይገኛል"];
@@ -291,7 +297,6 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     if (!ctx) return;
 
     let startTime = performance.now();
-    let tickerX = canvas.width;
 
     const render = (now: number) => {
       const elapsed = (now - startTime) / 1000;
@@ -349,6 +354,30 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         }
       }
 
+      // 2b. Natural Head & Neck Articulation (Dynamic conversational gestures & attentive cadence)
+      let targetNod = 0;
+      let targetTilt = 0;
+      let targetSway = 0;
+
+      if (isPlaying) {
+        // Natural speech cadence & affirmative conversational micro-nods
+        const speechCadence = Math.sin(elapsed * 3.4);
+        const speechKick = Math.sin(elapsed * 6.8) * Math.max(0, audioEnergy - 0.12);
+        targetNod = speechCadence * 1.5 + speechKick * 2.6 + 0.5; // Natural subtle nod
+        targetTilt = Math.sin(elapsed * 1.2) * 0.009 + Math.cos(elapsed * 2.6) * 0.005 * audioEnergy; // Subtle conversational head tilt
+        targetSway = Math.sin(elapsed * 1.5) * 1.4 + Math.cos(elapsed * 3.0) * 0.7 * audioEnergy; // Subtle lateral shift
+      } else {
+        // Calm resting breathing motion while attentive
+        targetNod = Math.sin(elapsed * 1.1) * 0.6;
+        targetTilt = Math.sin(elapsed * 0.6) * 0.002;
+        targetSway = Math.cos(elapsed * 0.8) * 0.4;
+      }
+
+      // Smooth kinematic lerp for fluid human motion
+      headMotionRef.current.nod += (targetNod - headMotionRef.current.nod) * 0.1;
+      headMotionRef.current.tilt += (targetTilt - headMotionRef.current.tilt) * 0.08;
+      headMotionRef.current.sway += (targetSway - headMotionRef.current.sway) * 0.09;
+
       // 3. Clear Screen & Studio Background Base
       ctx.clearRect(0, 0, width, height);
 
@@ -382,8 +411,18 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           ctx.restore();
         }
 
-        // B. Draw Static Crisp Base Anchor Image (100% FIXED STUDIO, NECK & BODY!)
-        // Zero neck movement, zero head tilt, zero studio background distortion!
+        // B. Draw Anchor with Natural Head & Neck Motion
+        // Torso base pivot (y ~ 0.88) anchors the body while the neck and head move organically
+        const pivotX = imgX + targetW * 0.5;
+        const pivotY = imgY + targetH * 0.88;
+
+        ctx.save();
+        // Articulate head & neck from the collar/base pivot
+        ctx.translate(pivotX, pivotY);
+        ctx.rotate(headMotionRef.current.tilt);
+        ctx.translate(headMotionRef.current.sway, headMotionRef.current.nod);
+        ctx.translate(-pivotX, -pivotY);
+
         ctx.drawImage(img, imgX, imgY, targetW, targetH);
 
         const currentPreset = AVATAR_PRESETS.find((p) => p.id === selectedPresetId);
@@ -589,6 +628,9 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           );
           ctx.restore();
         }
+
+        // Restore canvas transform after drawing anchor head, eyes & lips
+        ctx.restore();
       }
 
       // 4. TV Broadcast Overlays (LIVE ON AIR + Logo + Lower-Third)
@@ -631,69 +673,6 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           ? "GLOBAL 24"
           : "LIVE DESK";
       ctx.fillText(logoText, width - 150, 46);
-      ctx.restore();
-
-      // C. Professional Lower-Third News Banner
-      const currentSentenceIndex = isPlaying
-        ? Math.floor(elapsed / 4.5) % sentences.length
-        : 0;
-      const currentSentence =
-        sentences[currentSentenceIndex] || activeHeadline || "የቀጥታ ስቱዲዮ ዜና";
-
-      const barY = height - 100;
-      ctx.save();
-
-      const barGrad = ctx.createLinearGradient(0, barY, 0, barY + 65);
-      barGrad.addColorStop(0, "rgba(10, 10, 10, 0.95)");
-      barGrad.addColorStop(1, "rgba(20, 20, 20, 0.98)");
-      ctx.fillStyle = barGrad;
-      ctx.fillRect(24, barY, width - 48, 65);
-
-      // Left Accent Ribbon
-      ctx.fillStyle = studioTheme === "breaking" ? "#dc2626" : "#f59e0b";
-      ctx.fillRect(24, barY, 8, 65);
-
-      // Anchor & Headline Tag
-      ctx.fillStyle = studioTheme === "breaking" ? "#fca5a5" : "#fde68a";
-      ctx.font = 'bold 12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
-      ctx.fillText(
-        `🎙️ ${activeAvatarName}  |  ${
-          studioTheme === "breaking" ? "ሰበር መረጃ" : "አበይት ዜና"
-        }`,
-        44,
-        barY + 22
-      );
-
-      // Active Subtitle Line
-      ctx.fillStyle = "#ffffff";
-      ctx.font = 'bold 17px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
-      ctx.fillText(currentSentence.slice(0, 95), 44, barY + 48);
-      ctx.restore();
-
-      // D. Continuous Breaking Ticker
-      const tickerY = height - 26;
-      ctx.save();
-      ctx.fillStyle = "#09090b";
-      ctx.fillRect(0, tickerY, width, 26);
-
-      // Ticker label
-      ctx.fillStyle = "#dc2626";
-      ctx.fillRect(0, tickerY, 95, 26);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 11px system-ui, sans-serif";
-      ctx.fillText("BREAKING", 16, tickerY + 17);
-
-      // Scrolling text
-      const fullTickerText = `  •  ${sentences.join(
-        "   •   "
-      )}   •   GLOBAL NEWSROOM • ${activeAvatarName}  `;
-      ctx.fillStyle = "#e4e4e7";
-      ctx.font = '12px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
-      ctx.fillText(fullTickerText, tickerX, tickerY + 17);
-      tickerX -= 1.8;
-      if (tickerX < -2200) {
-        tickerX = width;
-      }
       ctx.restore();
 
       animFrameRef.current = requestAnimationFrame(render);
@@ -908,29 +887,14 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
               {/* Video Actions & Calibration Toggle */}
               <div className="flex items-center gap-2">
                 {recordedBlob && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleDownloadVideo}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800 transition-all cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{isEn ? "Download MP4" : "ቪዲዮውን አውርድ"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openCapCutWithMedia({
-                          blob: recordedBlob,
-                          filename: `talking_anchor_${Date.now()}.webm`,
-                        })
-                      }
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700 transition-all cursor-pointer"
-                    >
-                      <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>CapCut</span>
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={handleDownloadVideo}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-800 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{isEn ? "Download MP4" : "ቪዲዮውን አውርድ"}</span>
+                  </button>
                 )}
 
                 {/* Mouth Guide Calibration Toggle */}

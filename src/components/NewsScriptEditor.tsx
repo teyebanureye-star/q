@@ -17,7 +17,6 @@ import {
   MessageSquare,
   Camera,
   Lock,
-  Scissors,
   HeartPulse,
   PenLine,
   CheckCircle2,
@@ -25,7 +24,6 @@ import {
 } from "lucide-react";
 import { NewsScriptPreset, MusicBedType } from "../types/studio";
 import { useLanguage } from "../context/LanguageContext";
-import { openCapCut } from "../utils/mediaMerger";
 import {
   analyzeScriptSentiment,
   TONE_DEFINITIONS,
@@ -474,16 +472,6 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             >
               <Smile className="w-3.5 h-3.5 text-amber-400" />
               <span>{isEn ? "Talking Avatar" : "ተንቀሳቃሽ ፎቶ (Avatar)"}</span>
-            </button>
-
-            {/* CapCut Launcher */}
-            <button
-              type="button"
-              onClick={openCapCut}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white transition-all border border-neutral-700 font-bold cursor-pointer"
-            >
-              <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-              <span>CapCut</span>
             </button>
           </div>
         </div>

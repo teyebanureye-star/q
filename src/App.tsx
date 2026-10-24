@@ -24,10 +24,8 @@ import {
   Ban,
   Bell,
   ShieldAlert,
-  Scissors,
   Smile,
 } from "lucide-react";
-import { openCapCutWithMedia } from "./utils/mediaMerger";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry, MusicBedType } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
 import {
@@ -787,20 +785,6 @@ export default function App() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-purple-300 border border-purple-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
                   <span>ምስልና ቪዲዮ</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    openCapCutWithMedia({
-                      blob: exportedAudioBlob,
-                      url: exportedAudioUrl || selectedAnchor.sampleAudioUrl,
-                      filename: `broadcast_news_audio_${Date.now()}.wav`,
-                    })
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-white border border-neutral-700 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer"
-                >
-                  <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>CapCut</span>
                 </button>
                 <button
                   type="button"

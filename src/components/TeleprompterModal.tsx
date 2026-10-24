@@ -11,11 +11,10 @@ import {
   Download,
   ExternalLink,
   CircleDot,
-  Scissors,
   Zap,
   CheckCircle,
 } from "lucide-react";
-import { downloadBlob, downloadDirectVideo, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadBlob, downloadDirectVideo } from "../utils/mediaMerger";
 
 // Safe rounded rectangle for cross-browser 2D Canvas rendering
 function drawRoundedRect(
@@ -471,7 +470,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
               className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
                 textBgMode === "green" ? "bg-emerald-500 text-neutral-950 shadow-sm" : "text-emerald-400 hover:text-white"
               }`}
-              title="አረንጓዴ ስክሪን (Green Screen - ለ CapCut ክሮማ ኪይ)"
+              title="አረንጓዴ ስክሪን (Green Screen - Chroma Key)"
             >
               አረንጓዴ
             </button>
@@ -486,22 +485,6 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
               ሰማያዊ
             </button>
           </div>
-
-          {/* Direct CapCut Launcher Button */}
-          <button
-            type="button"
-            onClick={() =>
-              openCapCutWithMedia({
-                blob: recordedVideoBlob,
-                filename: `teleprompter_news_video_${Date.now()}.webm`,
-              })
-            }
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-neutral-900 to-neutral-800 hover:from-neutral-800 hover:to-neutral-700 text-white border border-neutral-700 rounded-lg shadow-sm transition-all cursor-pointer"
-            title="CapCut ላይ አርትዕ"
-          >
-            <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-            <span>CapCut</span>
-          </button>
 
           {/* Audio / Prompter Play Toggle */}
           <button

@@ -5,14 +5,12 @@ import {
   Play,
   Square,
   Video,
-  Scissors,
   Loader2,
 } from "lucide-react";
 import {
   downloadBlob,
   downloadDirectVideo,
   downloadUrl,
-  openCapCutWithMedia,
   mergeImageAndAudioToVideo,
 } from "../utils/mediaMerger";
 
@@ -187,24 +185,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   )}
                 </button>
               )}
-
-              {/* 1-Click CapCut Button */}
-              <button
-                type="button"
-                onClick={() =>
-                  openCapCutWithMedia({
-                    blob: exportedVideoBlob || audioBlob,
-                    url: audioUrl,
-                    filename: exportedVideoBlob
-                      ? `news_video_for_capcut_${Date.now()}.webm`
-                      : `news_audio_for_capcut_${Date.now()}.wav`,
-                  })
-                }
-                className="w-full py-2.5 bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 hover:from-neutral-700 hover:to-neutral-600 text-white border border-neutral-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
-              >
-                <Scissors className="w-4 h-4 text-cyan-400" />
-                <span>CapCut ክፈት</span>
-              </button>
             </div>
           </div>
         ) : (

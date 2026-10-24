@@ -21,7 +21,7 @@ import {
   cutSegmentFromAudioBuffer,
   audioBufferToWavBlob,
 } from "../utils/audioEditor";
-import { downloadBlob, openCapCutWithMedia } from "../utils/mediaMerger";
+import { downloadBlob } from "../utils/mediaMerger";
 
 interface AudioVisualizerProps {
   isPlaying: boolean;
@@ -754,31 +754,16 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
                 <span>ወደ ነበረበት</span>
               </button>
 
-              {/* Direct Export & CapCut */}
+              {/* Direct Export */}
               {audioBlob && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => downloadBlob(audioBlob, `news_edited_${Date.now()}.wav`)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>አውርድ</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openCapCutWithMedia({
-                        blob: audioBlob,
-                        filename: `news_audio_${Date.now()}.wav`,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-neutral-950 hover:bg-neutral-800 border border-cyan-500/60 text-cyan-300 transition-all cursor-pointer"
-                  >
-                    <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>CapCut</span>
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => downloadBlob(audioBlob, `news_edited_${Date.now()}.wav`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-neutral-950 shadow-md transition-all cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>አውርድ</span>
+                </button>
               )}
             </div>
           </div>

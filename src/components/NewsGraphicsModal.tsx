@@ -6,7 +6,6 @@ import {
   Loader2,
   X,
   Video,
-  Scissors,
   CheckCircle,
 } from "lucide-react";
 import {
@@ -14,7 +13,6 @@ import {
   downloadBlob,
   downloadDirectVideo,
   downloadUrl,
-  openCapCutWithMedia,
 } from "../utils/mediaMerger";
 
 interface NewsGraphicsModalProps {
@@ -198,7 +196,7 @@ export const NewsGraphicsModal: React.FC<NewsGraphicsModalProps> = ({
             ) : null}
           </div>
 
-          {/* Action Buttons: Merge Video, Download Video, CapCut */}
+          {/* Action Buttons: Merge Video & Download Video */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
             {/* 1. Merge Image & Voice Audio */}
             <button
@@ -240,21 +238,6 @@ export const NewsGraphicsModal: React.FC<NewsGraphicsModalProps> = ({
                 <span>ምስል አውርድ</span>
               </button>
             )}
-
-            {/* 3. Direct CapCut Launcher */}
-            <button
-              type="button"
-              onClick={() =>
-                openCapCutWithMedia({
-                  blob: mergedVideoBlob,
-                  filename: `broadcast_news_for_capcut_${Date.now()}.webm`,
-                })
-              }
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold bg-gradient-to-r from-neutral-800 to-neutral-700 hover:from-neutral-700 hover:to-neutral-600 text-white border border-neutral-600 rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              <Scissors className="w-3.5 h-3.5 text-cyan-400" />
-              <span>CapCut ክፈት</span>
-            </button>
           </div>
         </div>
 
