@@ -1445,6 +1445,11 @@ class StudioAudioEngine {
       this.mediaRecorder.stop();
     });
   }
+
+  public getMediaStreamDestination(): MediaStreamAudioDestinationNode | null {
+    this.init();
+    return this.destinationNode;
+  }
 }
 
 export const studioAudio = new StudioAudioEngine();

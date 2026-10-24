@@ -1004,6 +1004,7 @@ export default function App() {
         isPlaying={isPlaying}
         onPlayBroadcast={handleBroadcast}
         onStopBroadcast={handleStop}
+        onUpdateScript={(newScript) => setScript(newScript)}
       />
     </div>
   );
