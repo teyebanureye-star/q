@@ -159,7 +159,8 @@ function drawAnchorAvatar({
 
   const { x, y, width, height } = bounds;
   const pivotX = x + width * 0.5;
-  const pivotY = y + height * 0.88;
+  // Natural neck base pivot: articulates head and neck while keeping shoulders anchored
+  const pivotY = y + height * 0.65;
 
   ctx.save();
   // Pivot transform: articulates neck & head naturally while keeping base torso anchored
@@ -687,64 +688,70 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         }
       }
 
-      // 4. Kinematics for Host and Guest
-      // Host motion
+      // 4. Kinematics for Host and Guest (Articulated Neck & Head Motion)
+      // Host motion: lifelike neck articulation (speech cadence nod + conversational tilt & sway)
       const isHostSpeaking = studioMode === "solo" ? isPlaying : isPlaying && effectiveSpeaker === "interviewer";
-      let hostTargetNod = Math.sin(elapsed * 1.1) * 0.6;
-      let hostTargetTilt = studioMode === "interview" ? 0.02 : 0;
-      let hostTargetSway = Math.cos(elapsed * 0.8) * 0.4;
+      let hostTargetNod = Math.sin(elapsed * 1.2) * 1.2;
+      let hostTargetTilt = studioMode === "interview" ? 0.025 : 0;
+      let hostTargetSway = Math.cos(elapsed * 0.8) * 0.8;
 
       if (isHostSpeaking) {
-        const cadence = Math.sin(elapsed * 3.4);
-        const kick = Math.sin(elapsed * 6.8) * Math.max(0, audioEnergy - 0.12);
-        hostTargetNod = cadence * 1.5 + kick * 2.6 + 0.5;
+        const cadence = Math.sin(elapsed * 3.6);
+        const kick = Math.sin(elapsed * 7.2) * Math.max(0, audioEnergy - 0.1);
+        // Clear, lifelike neck nod on speech emphasis beats
+        hostTargetNod = cadence * 5.2 + kick * 7.0 + 2.2;
+        // Expressive conversational head & neck tilt
         hostTargetTilt =
-          (studioMode === "interview" ? 0.025 : 0) +
-          Math.sin(elapsed * 1.2) * 0.009 +
-          Math.cos(elapsed * 2.6) * 0.005 * audioEnergy;
-        hostTargetSway = Math.sin(elapsed * 1.5) * 1.4 + Math.cos(elapsed * 3.0) * 0.7 * audioEnergy;
+          (studioMode === "interview" ? 0.03 : 0) +
+          Math.sin(elapsed * 1.5) * 0.036 +
+          Math.cos(elapsed * 2.8) * 0.016 * audioEnergy;
+        // Natural subtle torso and neck sway
+        hostTargetSway = Math.sin(elapsed * 1.4) * 3.4 + Math.cos(elapsed * 2.8) * 1.8 * audioEnergy;
       } else if (studioMode === "interview" && isPlaying) {
-        // Listening to guest with attentive nod
-        hostTargetNod = Math.sin(elapsed * 1.6) * 1.1;
-        hostTargetTilt = 0.015 + Math.sin(elapsed * 0.9) * 0.005;
-        hostTargetSway = Math.cos(elapsed * 0.9) * 0.5;
+        // Listening to guest with attentive responsive head nods
+        hostTargetNod = Math.sin(elapsed * 1.8) * 3.8;
+        hostTargetTilt = 0.022 + Math.sin(elapsed * 0.9) * 0.016;
+        hostTargetSway = Math.cos(elapsed * 0.9) * 1.2;
       }
 
-      hostMotionRef.current.nod += (hostTargetNod - hostMotionRef.current.nod) * 0.1;
-      hostMotionRef.current.tilt += (hostTargetTilt - hostMotionRef.current.tilt) * 0.08;
-      hostMotionRef.current.sway += (hostTargetSway - hostMotionRef.current.sway) * 0.09;
+      hostMotionRef.current.nod += (hostTargetNod - hostMotionRef.current.nod) * 0.12;
+      hostMotionRef.current.tilt += (hostTargetTilt - hostMotionRef.current.tilt) * 0.1;
+      hostMotionRef.current.sway += (hostTargetSway - hostMotionRef.current.sway) * 0.1;
 
-      // Guest motion (Interview mode)
+      // Guest motion (Interview mode): lifelike neck articulation
       const isGuestSpeaking = studioMode === "interview" && isPlaying && effectiveSpeaker === "interviewee";
-      let guestTargetNod = Math.sin(elapsed * 1.1 + 1) * 0.6;
-      let guestTargetTilt = -0.02;
-      let guestTargetSway = Math.cos(elapsed * 0.8 + 1) * 0.4;
+      let guestTargetNod = Math.sin(elapsed * 1.2 + 1) * 1.2;
+      let guestTargetTilt = -0.025;
+      let guestTargetSway = Math.cos(elapsed * 0.8 + 1) * 0.8;
 
       if (isGuestSpeaking) {
-        const cadence = Math.sin(elapsed * 3.5);
-        const kick = Math.sin(elapsed * 6.9) * Math.max(0, audioEnergy - 0.12);
-        guestTargetNod = cadence * 1.5 + kick * 2.6 + 0.5;
+        const cadence = Math.sin(elapsed * 3.6);
+        const kick = Math.sin(elapsed * 7.2) * Math.max(0, audioEnergy - 0.1);
+        // Clear, lifelike neck nod on speech emphasis beats
+        guestTargetNod = cadence * 5.2 + kick * 7.0 + 2.2;
+        // Expressive conversational head & neck tilt
         guestTargetTilt =
-          -0.025 +
-          Math.sin(elapsed * 1.3) * 0.009 +
-          Math.cos(elapsed * 2.5) * 0.005 * audioEnergy;
-        guestTargetSway = Math.sin(elapsed * 1.6) * 1.4 + Math.cos(elapsed * 3.1) * 0.7 * audioEnergy;
+          -0.03 +
+          Math.sin(elapsed * 1.5) * 0.036 +
+          Math.cos(elapsed * 2.8) * 0.016 * audioEnergy;
+        // Natural subtle torso and neck sway
+        guestTargetSway = Math.sin(elapsed * 1.4) * 3.4 + Math.cos(elapsed * 2.8) * 1.8 * audioEnergy;
       } else if (isPlaying) {
-        // Listening to host with attentive nod
-        guestTargetNod = Math.sin(elapsed * 1.6 + 1.2) * 1.1;
-        guestTargetTilt = -0.015 + Math.sin(elapsed * 0.9 + 1) * 0.005;
-        guestTargetSway = Math.cos(elapsed * 0.9 + 1) * 0.5;
+        // Listening to host with attentive responsive head nods
+        guestTargetNod = Math.sin(elapsed * 1.8 + 1.2) * 3.8;
+        guestTargetTilt = -0.022 + Math.sin(elapsed * 0.9 + 1) * 0.016;
+        guestTargetSway = Math.cos(elapsed * 0.9 + 1) * 1.2;
       }
 
-      guestMotionRef.current.nod += (guestTargetNod - guestMotionRef.current.nod) * 0.1;
-      guestMotionRef.current.tilt += (guestTargetTilt - guestMotionRef.current.tilt) * 0.08;
-      guestMotionRef.current.sway += (guestTargetSway - guestMotionRef.current.sway) * 0.09;
+      guestMotionRef.current.nod += (guestTargetNod - guestMotionRef.current.nod) * 0.12;
+      guestMotionRef.current.tilt += (guestTargetTilt - guestMotionRef.current.tilt) * 0.1;
+      guestMotionRef.current.sway += (guestTargetSway - guestMotionRef.current.sway) * 0.1;
 
       // 5. Clear & Render Background
       ctx.clearRect(0, 0, width, height);
 
       if (studioMode === "solo") {
-        // Solo Mode Background
+        // Solo Mode Background - Stable & Steady
         const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
         bgGrad.addColorStop(0, "#081b33");
         bgGrad.addColorStop(1, "#02070e");
@@ -784,7 +791,7 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
           });
         }
       } else {
-        // Dual Interview Studio Background
+        // Dual Interview Studio Background - 100% Rock-Solid & Stable (No pulsating/shifting)
         const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
         bgGrad.addColorStop(0, "#08111e");
         bgGrad.addColorStop(0.65, "#040810");
@@ -792,20 +799,20 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, width, height);
 
-        // Overhead Keylights
+        // Constant Steady Overhead Studio Keylights (Never flicker or shift)
         const leftLight = ctx.createRadialGradient(340, 0, 20, 340, 300, 480);
-        leftLight.addColorStop(0, isHostSpeaking ? "rgba(245, 158, 11, 0.22)" : "rgba(245, 158, 11, 0.1)");
+        leftLight.addColorStop(0, "rgba(245, 158, 11, 0.12)");
         leftLight.addColorStop(1, "rgba(245, 158, 11, 0)");
         ctx.fillStyle = leftLight;
         ctx.fillRect(0, 0, width, height);
 
         const rightLight = ctx.createRadialGradient(940, 0, 20, 940, 300, 480);
-        rightLight.addColorStop(0, isGuestSpeaking ? "rgba(56, 189, 248, 0.22)" : "rgba(56, 189, 248, 0.1)");
+        rightLight.addColorStop(0, "rgba(56, 189, 248, 0.12)");
         rightLight.addColorStop(1, "rgba(56, 189, 248, 0)");
         ctx.fillStyle = rightLight;
         ctx.fillRect(0, 0, width, height);
 
-        // Center Newsroom Video Monitor Wall
+        // Center Newsroom Video Monitor Wall - Steady Grid Design
         ctx.save();
         ctx.fillStyle = "rgba(10, 20, 35, 0.65)";
         ctx.beginPath();
@@ -835,10 +842,10 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         ctx.textAlign = "center";
         ctx.fillText("STUDIO INTERVIEW DESK", width * 0.5, 75);
 
-        // Animated audio spectrum in background screen
+        // Fixed elegant studio monitor graphic (rock-solid, no jitter)
         for (let b = 0; b < 24; b++) {
-          const barH = 12 + Math.sin(elapsed * 2.5 + b * 0.4) * 8 + Math.cos(elapsed * 3.8 + b * 0.7) * 6;
-          ctx.fillStyle = b % 2 === 0 ? "rgba(245, 158, 11, 0.45)" : "rgba(56, 189, 248, 0.45)";
+          const barH = 14 + (b % 5) * 4;
+          ctx.fillStyle = b % 2 === 0 ? "rgba(245, 158, 11, 0.35)" : "rgba(56, 189, 248, 0.35)";
           ctx.fillRect(width * 0.36 + b * 15, 230 - barH, 9, barH);
         }
         ctx.restore();
@@ -957,6 +964,53 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         ctx.restore();
       }
 
+      // 8.5 Continuous TV Scrolling News Ticker Tape (CNN/BBC Broadcast Style)
+      const tickerH = 40;
+      const tickerY = height - tickerH;
+
+      ctx.save();
+      // Dark high-contrast broadcast ticker bar
+      ctx.fillStyle = "rgba(7, 11, 22, 0.96)";
+      ctx.fillRect(0, tickerY, width, tickerH);
+
+      // Top accent divider
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(0, tickerY, width, 2.5);
+
+      // Red Breaking News Left Badge
+      const badgeW = 145;
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(0, tickerY, badgeW, tickerH);
+
+      // Left Badge Text
+      ctx.fillStyle = "#ffffff";
+      ctx.font = 'bold 13px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+      ctx.textAlign = "center";
+      ctx.fillText("🔴 ሰበር ዜና", badgeW / 2, tickerY + 25);
+
+      // Clipping Region for Horizontally Scrolling News Text
+      ctx.beginPath();
+      ctx.rect(badgeW + 12, tickerY, width - badgeW - 12, tickerH);
+      ctx.clip();
+
+      const rawText = (script || activeHeadline || "የቀጥታ ስቱዲዮ ዜና ስርጭት")
+        .replace(/^(ጠያቂ|ተጠያቂ|ተንታኝ|guest|host|interviewer|analyst)[፦:]\s*/gim, "")
+        .replace(/\r?\n+/g, "   ◄►   ")
+        .trim();
+      const tickerUnit = `${activeHeadline ? `【 ${activeHeadline} 】   ` : ""}${rawText}   ◄►   `;
+
+      ctx.font = 'bold 15px "Nyala", "Noto Sans Ethiopic", system-ui, sans-serif';
+      ctx.textAlign = "left";
+      const unitWidth = Math.max(200, ctx.measureText(tickerUnit).width);
+      const scrollSpeed = 85; // px / sec
+      const offset = (elapsed * scrollSpeed) % unitWidth;
+
+      for (let tx = badgeW + 16 - offset; tx < width + unitWidth; tx += unitWidth) {
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText(tickerUnit, tx, tickerY + 25);
+      }
+      ctx.restore();
+
       // 9. TV Top Overlays (LIVE badge and channel logo)
       // Top-Left "LIVE ON AIR"
       ctx.save();
@@ -1029,6 +1083,8 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
     guestName,
     dialogueTurns,
     activeConfigTab,
+    script,
+    activeHeadline,
   ]);
 
   // Video Recording Logic

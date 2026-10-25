@@ -276,8 +276,9 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const [studioSet, setStudioSet] = useState<StudioSetType>("prime");
+  const [studioLayout, setStudioLayout] = useState<"interview" | "solo">("interview");
   const [lightingMode, setLightingMode] = useState<"day" | "dramatic" | "night">("day");
-  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "overhead" | "auto">("auto");
+  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "twoshot" | "overhead" | "auto">("auto");
 
   // Audio & Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -301,6 +302,8 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const onAirLightRef = useRef<THREE.PointLight | null>(null);
   const anchorGroupRef = useRef<THREE.Group | null>(null);
   const anchorHeadRef = useRef<THREE.Group | null>(null);
+  const guestGroupRef = useRef<THREE.Group | null>(null);
+  const guestHeadRef = useRef<THREE.Group | null>(null);
 
   // Recording & Streaming Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -328,8 +331,117 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Build the 3D Set objects based on selected theme
-  const buildStudioSet = (scene: THREE.Scene, theme: StudioSetType) => {
+  // Helper to create stylized 3D broadcast avatars (Host ጠያቂ or Guest Analyst ተጠያቂ)
+  const create3DAnchorFigure = (theme: StudioSetType, role: "host" | "guest") => {
+    const isGuest = role === "guest";
+    const group = new THREE.Group();
+
+    const suitColor = isGuest
+      ? 0x334155
+      : theme === "breaking"
+      ? 0x1c1917
+      : theme === "cyber"
+      ? 0x0f172a
+      : 0x1e293b;
+
+    const suitMat = new THREE.MeshStandardMaterial({
+      color: suitColor,
+      roughness: 0.6,
+      metalness: 0.15,
+    });
+
+    const torsoGeo = new THREE.CylinderGeometry(0.38, 0.44, 0.85, 16);
+    const torso = new THREE.Mesh(torsoGeo, suitMat);
+    torso.position.set(0, 0.42, 0);
+    group.add(torso);
+
+    const shirtMat = new THREE.MeshStandardMaterial({
+      color: isGuest ? 0xf1f5f9 : 0xf8fafc,
+      roughness: 0.3,
+    });
+    const shirtGeo = new THREE.BoxGeometry(0.16, 0.35, 0.05);
+    const shirt = new THREE.Mesh(shirtGeo, shirtMat);
+    shirt.position.set(0, 0.65, 0.2);
+    group.add(shirt);
+
+    const tieMat = new THREE.MeshStandardMaterial({
+      color: isGuest
+        ? 0x0284c7
+        : theme === "breaking"
+        ? 0xdc2626
+        : 0xd97706,
+      roughness: 0.4,
+    });
+    const tieGeo = new THREE.BoxGeometry(0.06, 0.38, 0.04);
+    const tie = new THREE.Mesh(tieGeo, tieMat);
+    tie.position.set(0, 0.62, 0.23);
+    group.add(tie);
+
+    const leftShoulderGeo = new THREE.SphereGeometry(0.16, 12, 12);
+    const leftShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
+    leftShoulder.position.set(-0.42, 0.72, 0);
+    group.add(leftShoulder);
+
+    const rightShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
+    rightShoulder.position.set(0.42, 0.72, 0);
+    group.add(rightShoulder);
+
+    const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.6, 12);
+    const leftArm = new THREE.Mesh(armGeo, suitMat);
+    leftArm.position.set(-0.35, 0.45, 0.28);
+    leftArm.rotation.x = 0.8;
+    leftArm.rotation.z = -0.3;
+    group.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeo, suitMat);
+    rightArm.position.set(0.35, 0.45, 0.28);
+    rightArm.rotation.x = 0.8;
+    rightArm.rotation.z = 0.3;
+    group.add(rightArm);
+
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.05, 0.02);
+
+    const skinMat = new THREE.MeshStandardMaterial({
+      color: isGuest ? 0x9a6241 : 0x8a5231,
+      roughness: 0.7,
+    });
+    const neckGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.22, 12);
+    const neck = new THREE.Mesh(neckGeo, skinMat);
+    neck.position.set(0, -0.06, 0);
+    headGroup.add(neck);
+
+    const headGeo = new THREE.SphereGeometry(0.24, 20, 20);
+    const head = new THREE.Mesh(headGeo, skinMat);
+    headGroup.add(head);
+
+    const hairMat = new THREE.MeshStandardMaterial({
+      color: isGuest ? 0x27272a : 0x18181b,
+      roughness: 0.9,
+    });
+    const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
+    const hair = new THREE.Mesh(hairGeo, hairMat);
+    hair.position.set(0, 0.06, -0.02);
+    headGroup.add(hair);
+
+    group.add(headGroup);
+
+    // Desk Placard
+    const cardMat = new THREE.MeshStandardMaterial({
+      color: 0x0b1120,
+      roughness: 0.3,
+      metalness: 0.7,
+    });
+    const cardGeo = new THREE.BoxGeometry(0.78, 0.14, 0.06);
+    const placard = new THREE.Mesh(cardGeo, cardMat);
+    placard.position.set(0, 0.08, 0.65);
+    group.add(placard);
+
+    return { group, head: headGroup };
+  };
+
+  // Build the 3D Set objects based on selected theme & layout
+  const buildStudioSet = (scene: THREE.Scene, theme: StudioSetType, layout?: "solo" | "interview") => {
     if (setGroupRef.current) {
       scene.remove(setGroupRef.current);
       setGroupRef.current.traverse((child) => {
@@ -491,86 +603,35 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       setGroup.add(ring);
     });
 
-    // Stylized 3D Broadcast News Anchor Avatar Seated Behind Desk
-    const anchorGroup = new THREE.Group();
-    anchorGroup.position.set(0, 1.1, -0.4);
-    anchorGroupRef.current = anchorGroup;
+    // Broadcast News Anchor(s) Seated Behind News Desk (Solo vs Interview Mode)
+    const currentLayout = layout || studioLayout;
+    if (currentLayout === "interview") {
+      // 1. Host (ጠያቂ - Left)
+      const hostFig = create3DAnchorFigure(theme, "host");
+      hostFig.group.position.set(-1.45, 1.1, -0.35);
+      hostFig.group.rotation.y = 0.22;
+      anchorGroupRef.current = hostFig.group;
+      anchorHeadRef.current = hostFig.head;
+      setGroup.add(hostFig.group);
 
-    // Tailored Suit Torso
-    const suitMat = new THREE.MeshStandardMaterial({
-      color: theme === "breaking" ? 0x1c1917 : theme === "cyber" ? 0x0f172a : 0x1e293b,
-      roughness: 0.6,
-      metalness: 0.15,
-    });
-    const torsoGeo = new THREE.CylinderGeometry(0.38, 0.44, 0.85, 16);
-    const torso = new THREE.Mesh(torsoGeo, suitMat);
-    torso.position.set(0, 0.42, 0);
-    anchorGroup.add(torso);
-
-    // Shirt & Tie
-    const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
-    const shirtGeo = new THREE.BoxGeometry(0.16, 0.35, 0.05);
-    const shirt = new THREE.Mesh(shirtGeo, shirtMat);
-    shirt.position.set(0, 0.65, 0.2);
-    anchorGroup.add(shirt);
-
-    const tieMat = new THREE.MeshStandardMaterial({
-      color: theme === "breaking" ? 0xdc2626 : 0xd97706,
-      roughness: 0.4,
-    });
-    const tieGeo = new THREE.BoxGeometry(0.06, 0.38, 0.04);
-    const tie = new THREE.Mesh(tieGeo, tieMat);
-    tie.position.set(0, 0.62, 0.23);
-    anchorGroup.add(tie);
-
-    // Shoulders
-    const leftShoulderGeo = new THREE.SphereGeometry(0.16, 12, 12);
-    const leftShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
-    leftShoulder.position.set(-0.42, 0.72, 0);
-    anchorGroup.add(leftShoulder);
-
-    const rightShoulder = new THREE.Mesh(leftShoulderGeo, suitMat);
-    rightShoulder.position.set(0.42, 0.72, 0);
-    anchorGroup.add(rightShoulder);
-
-    // Arms resting on news desk
-    const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.6, 12);
-    const leftArm = new THREE.Mesh(armGeo, suitMat);
-    leftArm.position.set(-0.35, 0.45, 0.28);
-    leftArm.rotation.x = 0.8;
-    leftArm.rotation.z = -0.3;
-    anchorGroup.add(leftArm);
-
-    const rightArm = new THREE.Mesh(armGeo, suitMat);
-    rightArm.position.set(0.35, 0.45, 0.28);
-    rightArm.rotation.x = 0.8;
-    rightArm.rotation.z = 0.3;
-    anchorGroup.add(rightArm);
-
-    // Stylized Anchor Head
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.05, 0.02);
-    anchorHeadRef.current = headGroup;
-
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a5231, roughness: 0.7 });
-    const neckGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.22, 12);
-    const neck = new THREE.Mesh(neckGeo, skinMat);
-    neck.position.set(0, -0.06, 0);
-    headGroup.add(neck);
-
-    const headGeo = new THREE.SphereGeometry(0.24, 20, 20);
-    const head = new THREE.Mesh(headGeo, skinMat);
-    headGroup.add(head);
-
-    // Hair
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9 });
-    const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
-    const hair = new THREE.Mesh(hairGeo, hairMat);
-    hair.position.set(0, 0.06, -0.02);
-    headGroup.add(hair);
-
-    anchorGroup.add(headGroup);
-    setGroup.add(anchorGroup);
+      // 2. Guest Analyst (ተጠያቂ - Right)
+      const guestFig = create3DAnchorFigure(theme, "guest");
+      guestFig.group.position.set(1.45, 1.1, -0.35);
+      guestFig.group.rotation.y = -0.22;
+      guestGroupRef.current = guestFig.group;
+      guestHeadRef.current = guestFig.head;
+      setGroup.add(guestFig.group);
+    } else {
+      // Solo Anchor (Centered)
+      const hostFig = create3DAnchorFigure(theme, "host");
+      hostFig.group.position.set(0, 1.1, -0.4);
+      hostFig.group.rotation.y = 0;
+      anchorGroupRef.current = hostFig.group;
+      anchorHeadRef.current = hostFig.head;
+      guestGroupRef.current = null;
+      guestHeadRef.current = null;
+      setGroup.add(hostFig.group);
+    }
 
     // Studio Camera Rig
     const camBoxGeo = new THREE.BoxGeometry(0.3, 0.35, 0.5);
@@ -640,20 +701,33 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       if (cameraView === "auto") {
         const isSpeaking = isRecording || isLocalAudioPlaying;
         if (isSpeaking) {
-          // Every 7 seconds, smoothly switch TV camera perspective
-          const cameraPhase = Math.floor(elapsed / 7) % 4;
-          if (cameraPhase === 0) {
-            // Anchor close-up
-            targetCameraPos.current.set(0, 1.85, 3.8);
-          } else if (cameraPhase === 1) {
-            // Right 45-degree studio dynamic shot
-            targetCameraPos.current.set(2.4, 1.95, 4.8);
-          } else if (cameraPhase === 2) {
-            // Wide studio crane
-            targetCameraPos.current.set(Math.sin(elapsed * 0.12) * 2.5, 3.0, 7.8);
+          if (studioLayout === "interview") {
+            const cameraPhase = Math.floor(elapsed / 5.5) % 4;
+            if (cameraPhase === 0) {
+              // Two-shot analysis wide
+              targetCameraPos.current.set(0, 2.1, 5.4);
+            } else if (cameraPhase === 1) {
+              // Host close-up
+              targetCameraPos.current.set(-1.15, 1.8, 3.4);
+            } else if (cameraPhase === 2) {
+              // Guest close-up
+              targetCameraPos.current.set(1.15, 1.8, 3.4);
+            } else {
+              // Crane dynamic angle
+              targetCameraPos.current.set(Math.sin(elapsed * 0.15) * 2.2, 2.8, 6.8);
+            }
           } else {
-            // Left 45-degree angle
-            targetCameraPos.current.set(-2.4, 1.95, 4.8);
+            // Solo news anchor
+            const cameraPhase = Math.floor(elapsed / 7) % 4;
+            if (cameraPhase === 0) {
+              targetCameraPos.current.set(0, 1.85, 3.8);
+            } else if (cameraPhase === 1) {
+              targetCameraPos.current.set(2.4, 1.95, 4.8);
+            } else if (cameraPhase === 2) {
+              targetCameraPos.current.set(Math.sin(elapsed * 0.12) * 2.5, 3.0, 7.8);
+            } else {
+              targetCameraPos.current.set(-2.4, 1.95, 4.8);
+            }
           }
         } else {
           // Slow idle panoramic sweep
@@ -669,17 +743,40 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       camera.position.copy(currentCameraPos.current);
       camera.lookAt(0, 1.25, 0);
 
-      // Animate Anchor Head & Posture during broadcast reading
-      if (anchorHeadRef.current) {
-        const isSpeaking = isRecording || isLocalAudioPlaying;
-        if (isSpeaking) {
-          // Dynamic speaking head nod & turn matching Amharic broadcast speech rhythm
-          anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.6) * 0.1;
-          anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.2) * 0.04 + 0.02;
-        } else {
-          // Subtle idle breathing motion
-          anchorHeadRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.03;
-          anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.2) * 0.015;
+      // Animate Host & Guest Head & Posture during broadcast reading
+      const isSpeaking = isRecording || isLocalAudioPlaying;
+      if (studioLayout === "interview") {
+        const isHostTurn = isSpeaking && Math.floor(elapsed / 5.5) % 2 === 0;
+        const isGuestTurn = isSpeaking && Math.floor(elapsed / 5.5) % 2 === 1;
+
+        if (anchorHeadRef.current) {
+          if (isHostTurn) {
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.8) * 0.12 + 0.08;
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.6) * 0.05 + 0.03;
+          } else {
+            anchorHeadRef.current.rotation.y = 0.1 + Math.sin(elapsed * 0.9) * 0.03;
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 2.0) * 0.035;
+          }
+        }
+
+        if (guestHeadRef.current) {
+          if (isGuestTurn) {
+            guestHeadRef.current.rotation.y = Math.sin(elapsed * 1.8 + 1) * 0.12 - 0.08;
+            guestHeadRef.current.rotation.x = Math.sin(elapsed * 3.6 + 1) * 0.05 + 0.03;
+          } else {
+            guestHeadRef.current.rotation.y = -0.1 + Math.sin(elapsed * 0.9 + 1) * 0.03;
+            guestHeadRef.current.rotation.x = Math.sin(elapsed * 2.0 + 1) * 0.035;
+          }
+        }
+      } else {
+        if (anchorHeadRef.current) {
+          if (isSpeaking) {
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.6) * 0.1;
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.2) * 0.04 + 0.02;
+          } else {
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.03;
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.2) * 0.015;
+          }
         }
       }
 
@@ -729,17 +826,27 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const handleChangeSet = (newSet: StudioSetType) => {
     setStudioSet(newSet);
     if (sceneRef.current) {
-      buildStudioSet(sceneRef.current, newSet);
+      buildStudioSet(sceneRef.current, newSet, studioLayout);
+    }
+  };
+
+  // Handle Layout Change (Solo vs Interview Mode)
+  const handleToggleLayout = (newLayout: "interview" | "solo") => {
+    setStudioLayout(newLayout);
+    if (sceneRef.current) {
+      buildStudioSet(sceneRef.current, studioSet, newLayout);
     }
   };
 
   // Handle Camera Presets
-  const setCameraPreset = (view: "wide" | "anchor" | "overhead" | "auto") => {
+  const setCameraPreset = (view: "wide" | "anchor" | "twoshot" | "overhead" | "auto") => {
     setCameraView(view);
     if (view === "wide") {
       targetCameraPos.current.set(0, 3, 9);
     } else if (view === "anchor") {
-      targetCameraPos.current.set(0, 1.7, 3.8);
+      targetCameraPos.current.set(studioLayout === "interview" ? -1.15 : 0, 1.8, 3.6);
+    } else if (view === "twoshot") {
+      targetCameraPos.current.set(0, 2.1, 5.5);
     } else if (view === "overhead") {
       targetCameraPos.current.set(0, 8, 5);
     }
@@ -1051,6 +1158,32 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
                 ON AIR
               </span>
             </div>
+
+            {/* Studio Layout Switcher (Solo vs Interview Mode) */}
+            <div className="hidden sm:flex items-center bg-neutral-900/90 border border-neutral-700/80 rounded-lg p-0.5 ml-2">
+              <button
+                type="button"
+                onClick={() => handleToggleLayout("interview")}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  studioLayout === "interview"
+                    ? "bg-amber-500 text-neutral-950 shadow-sm"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+              >
+                👥 ቃለ-መጠይቅ (ድርብ)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleLayout("solo")}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  studioLayout === "solo"
+                    ? "bg-amber-500 text-neutral-950 shadow-sm"
+                    : "text-neutral-300 hover:text-white"
+                }`}
+              >
+                👤 ነጠላ (Solo)
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons: Play, Direct Download, Record, Export & Close */}
@@ -1245,6 +1378,15 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
                 }`}
               >
                 ቀረብ (Close-up)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCameraPreset("twoshot")}
+                className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  cameraView === "twoshot" ? "bg-amber-500 text-neutral-950" : "bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
+                }`}
+              >
+                ድርብ (2-Shot)
               </button>
               <button
                 type="button"
