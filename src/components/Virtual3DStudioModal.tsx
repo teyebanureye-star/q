@@ -278,7 +278,7 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const [studioSet, setStudioSet] = useState<StudioSetType>("prime");
   const [studioLayout, setStudioLayout] = useState<"interview" | "solo">("interview");
   const [lightingMode, setLightingMode] = useState<"day" | "dramatic" | "night">("day");
-  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "twoshot" | "overhead" | "auto">("auto");
+  const [cameraView, setCameraView] = useState<"wide" | "anchor" | "twoshot" | "overhead" | "auto">("twoshot");
 
   // Audio & Recording State
   const [isRecording, setIsRecording] = useState(false);
@@ -293,8 +293,8 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const targetCameraPos = useRef(new THREE.Vector3(0, 3, 9));
-  const currentCameraPos = useRef(new THREE.Vector3(0, 3, 9));
+  const targetCameraPos = useRef(new THREE.Vector3(0, 2.05, 5.2));
+  const currentCameraPos = useRef(new THREE.Vector3(0, 2.05, 5.2));
 
   const setGroupRef = useRef<THREE.Group | null>(null);
   const globeMeshRef = useRef<THREE.Mesh | null>(null);
@@ -399,30 +399,57 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     rightArm.rotation.z = 0.3;
     group.add(rightArm);
 
+    // Articulated Head & Neck Group (Pivots from clavicle / shoulder base)
     const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.05, 0.02);
+    headGroup.position.set(0, 0.88, 0.02);
 
     const skinMat = new THREE.MeshStandardMaterial({
       color: isGuest ? 0x9a6241 : 0x8a5231,
       roughness: 0.7,
     });
-    const neckGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.22, 12);
+
+    // Neck cylinder starts at collar base (y=0) and reaches up to head base (y=0.22)
+    const neckGeo = new THREE.CylinderGeometry(0.10, 0.13, 0.22, 16);
     const neck = new THREE.Mesh(neckGeo, skinMat);
-    neck.position.set(0, -0.06, 0);
+    neck.position.set(0, 0.11, 0);
     headGroup.add(neck);
 
+    // Collar detail
+    const collarGeo = new THREE.CylinderGeometry(0.14, 0.15, 0.05, 16);
+    const collarMat = new THREE.MeshStandardMaterial({
+      color: isGuest ? 0xe2e8f0 : 0xffffff,
+      roughness: 0.5,
+    });
+    const collar = new THREE.Mesh(collarGeo, collarMat);
+    collar.position.set(0, 0.03, 0);
+    headGroup.add(collar);
+
+    // Head sphere sits directly atop the neck at y=0.34
     const headGeo = new THREE.SphereGeometry(0.24, 20, 20);
     const head = new THREE.Mesh(headGeo, skinMat);
+    head.position.set(0, 0.34, 0);
     headGroup.add(head);
 
+    // Hair
     const hairMat = new THREE.MeshStandardMaterial({
       color: isGuest ? 0x27272a : 0x18181b,
       roughness: 0.9,
     });
     const hairGeo = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
     const hair = new THREE.Mesh(hairGeo, hairMat);
-    hair.position.set(0, 0.06, -0.02);
+    hair.position.set(0, 0.40, -0.02);
     headGroup.add(hair);
+
+    // Face orientation feature (Visor / News glasses band) to clearly register head tilt & angle
+    const featureGeo = new THREE.BoxGeometry(0.26, 0.04, 0.08);
+    const featureMat = new THREE.MeshStandardMaterial({
+      color: isGuest ? 0xd97706 : 0x1e293b,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    const feature = new THREE.Mesh(featureGeo, featureMat);
+    feature.position.set(0, 0.35, 0.21);
+    headGroup.add(feature);
 
     group.add(headGroup);
 
@@ -660,10 +687,11 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 100);
-    camera.position.set(0, 3, 9);
+    const initialCameraPos = new THREE.Vector3(0, 2.05, 5.2);
+    camera.position.copy(initialCameraPos);
     cameraRef.current = camera;
-    currentCameraPos.current.set(0, 3, 9);
-    targetCameraPos.current.set(0, 3, 9);
+    currentCameraPos.current.copy(initialCameraPos);
+    targetCameraPos.current.copy(initialCameraPos);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height);
@@ -697,85 +725,95 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
       const dt = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Cinematic multi-camera director switching (cycles dynamically while reading)
+      // Camera positioning: 100% solid, steady broadcast tripod angles - ZERO panoramic sweeps or continuous drifting
       if (cameraView === "auto") {
-        const isSpeaking = isRecording || isLocalAudioPlaying;
+        const isSpeaking = isRecording || isLocalAudioPlaying || isPlaying;
         if (isSpeaking) {
           if (studioLayout === "interview") {
-            const cameraPhase = Math.floor(elapsed / 5.5) % 4;
+            const cameraPhase = Math.floor(elapsed / 5.5) % 3;
             if (cameraPhase === 0) {
-              // Two-shot analysis wide
-              targetCameraPos.current.set(0, 2.1, 5.4);
+              // Two-shot analysis wide - solid stationary tripod
+              targetCameraPos.current.set(0, 2.05, 5.2);
             } else if (cameraPhase === 1) {
-              // Host close-up
-              targetCameraPos.current.set(-1.15, 1.8, 3.4);
-            } else if (cameraPhase === 2) {
-              // Guest close-up
-              targetCameraPos.current.set(1.15, 1.8, 3.4);
+              // Host close-up - solid stationary tripod
+              targetCameraPos.current.set(-1.15, 1.85, 3.4);
             } else {
-              // Crane dynamic angle
-              targetCameraPos.current.set(Math.sin(elapsed * 0.15) * 2.2, 2.8, 6.8);
+              // Guest close-up - solid stationary tripod
+              targetCameraPos.current.set(1.15, 1.85, 3.4);
             }
           } else {
-            // Solo news anchor
-            const cameraPhase = Math.floor(elapsed / 7) % 4;
-            if (cameraPhase === 0) {
-              targetCameraPos.current.set(0, 1.85, 3.8);
-            } else if (cameraPhase === 1) {
-              targetCameraPos.current.set(2.4, 1.95, 4.8);
-            } else if (cameraPhase === 2) {
-              targetCameraPos.current.set(Math.sin(elapsed * 0.12) * 2.5, 3.0, 7.8);
-            } else {
-              targetCameraPos.current.set(-2.4, 1.95, 4.8);
-            }
+            // Solo news anchor - solid stationary tripod
+            targetCameraPos.current.set(0, 1.85, 3.8);
           }
         } else {
-          // Slow idle panoramic sweep
-          const radius = 7.5 + Math.sin(elapsed * 0.25) * 1.5;
-          const angle = Math.sin(elapsed * 0.15) * 0.45;
-          targetCameraPos.current.x = Math.sin(angle) * radius;
-          targetCameraPos.current.z = Math.cos(angle) * radius;
-          targetCameraPos.current.y = 2.4 + Math.sin(elapsed * 0.2) * 0.6;
+          // Idle: Rock-solid stationary desk anchor view - completely motionless studio
+          if (studioLayout === "interview") {
+            targetCameraPos.current.set(0, 2.05, 5.2);
+          } else {
+            targetCameraPos.current.set(0, 1.85, 3.8);
+          }
         }
       }
 
-      currentCameraPos.current.lerp(targetCameraPos.current, 1 - Math.exp(-4.5 * dt));
+      currentCameraPos.current.lerp(targetCameraPos.current, 1 - Math.exp(-6.0 * dt));
       camera.position.copy(currentCameraPos.current);
       camera.lookAt(0, 1.25, 0);
 
-      // Animate Host & Guest Head & Posture during broadcast reading
-      const isSpeaking = isRecording || isLocalAudioPlaying;
+      // Animate Host & Guest Neck & Head Articulation (Lifelike & Prominently Visible)
+      const isSpeaking = isRecording || isLocalAudioPlaying || isPlaying;
       if (studioLayout === "interview") {
         const isHostTurn = isSpeaking && Math.floor(elapsed / 5.5) % 2 === 0;
         const isGuestTurn = isSpeaking && Math.floor(elapsed / 5.5) % 2 === 1;
 
         if (anchorHeadRef.current) {
           if (isHostTurn) {
-            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.8) * 0.12 + 0.08;
-            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.6) * 0.05 + 0.03;
+            // Active speaking: lively speech rhythm nod (~12°) + natural conversational tilt & direction
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.4) * 0.18 + 0.08;
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.6) * 0.20 + 0.14;
+            anchorHeadRef.current.rotation.z = Math.sin(elapsed * 1.8) * 0.06;
+          } else if (isGuestTurn) {
+            // Attentive listening: turned towards guest with responsive listening nods
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 2.2) * 0.10 + 0.04;
+            anchorHeadRef.current.rotation.y = 0.32 + Math.sin(elapsed * 0.8) * 0.08;
+            anchorHeadRef.current.rotation.z = 0.04;
           } else {
-            anchorHeadRef.current.rotation.y = 0.1 + Math.sin(elapsed * 0.9) * 0.03;
-            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 2.0) * 0.035;
+            // Idle state: distinct natural breathing and glancing neck movement (never stiff)
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.5) * 0.09 + 0.04;
+            anchorHeadRef.current.rotation.y = 0.18 + Math.sin(elapsed * 0.7) * 0.12;
+            anchorHeadRef.current.rotation.z = Math.sin(elapsed * 0.7) * 0.03;
           }
         }
 
         if (guestHeadRef.current) {
           if (isGuestTurn) {
-            guestHeadRef.current.rotation.y = Math.sin(elapsed * 1.8 + 1) * 0.12 - 0.08;
-            guestHeadRef.current.rotation.x = Math.sin(elapsed * 3.6 + 1) * 0.05 + 0.03;
+            // Active speaking: lively speech rhythm nod (~12°) + natural conversational tilt & direction
+            guestHeadRef.current.rotation.x = Math.sin(elapsed * 3.4 + 1.2) * 0.18 + 0.08;
+            guestHeadRef.current.rotation.y = Math.sin(elapsed * 1.6 + 1.2) * 0.20 - 0.14;
+            guestHeadRef.current.rotation.z = -Math.sin(elapsed * 1.8 + 1.2) * 0.06;
+          } else if (isHostTurn) {
+            // Attentive listening: turned towards host with responsive listening nods
+            guestHeadRef.current.rotation.x = Math.sin(elapsed * 2.2 + 1.0) * 0.10 + 0.04;
+            guestHeadRef.current.rotation.y = -0.32 + Math.sin(elapsed * 0.8 + 1.0) * 0.08;
+            guestHeadRef.current.rotation.z = -0.04;
           } else {
-            guestHeadRef.current.rotation.y = -0.1 + Math.sin(elapsed * 0.9 + 1) * 0.03;
-            guestHeadRef.current.rotation.x = Math.sin(elapsed * 2.0 + 1) * 0.035;
+            // Idle state: distinct natural breathing and glancing neck movement (never stiff)
+            guestHeadRef.current.rotation.x = Math.sin(elapsed * 1.5 + 1.4) * 0.09 + 0.04;
+            guestHeadRef.current.rotation.y = -0.18 + Math.sin(elapsed * 0.7 + 1.4) * 0.12;
+            guestHeadRef.current.rotation.z = -Math.sin(elapsed * 0.7 + 1.4) * 0.03;
           }
         }
       } else {
         if (anchorHeadRef.current) {
           if (isSpeaking) {
-            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.6) * 0.1;
-            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.2) * 0.04 + 0.02;
+            // Active solo news reading: emphatic broadcast head nod & clear directional engagement
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 3.4) * 0.18 + 0.08;
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 1.5) * 0.16;
+            anchorHeadRef.current.rotation.z = Math.sin(elapsed * 1.8) * 0.05;
           } else {
-            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.03;
-            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.2) * 0.015;
+            // Idle solo news desk: natural breathing & periodic script reading nods
+            anchorHeadRef.current.rotation.x = Math.sin(elapsed * 1.4) * 0.09 + 0.04;
+            anchorHeadRef.current.rotation.y = Math.sin(elapsed * 0.7) * 0.12;
+            anchorHeadRef.current.rotation.z = Math.sin(elapsed * 0.7) * 0.03;
           }
         }
       }
@@ -838,17 +876,19 @@ export const Virtual3DStudioModal: React.FC<Virtual3DStudioModalProps> = ({
     }
   };
 
-  // Handle Camera Presets
+  // Handle Camera Presets (Rock-solid stationary broadcast angles)
   const setCameraPreset = (view: "wide" | "anchor" | "twoshot" | "overhead" | "auto") => {
     setCameraView(view);
     if (view === "wide") {
-      targetCameraPos.current.set(0, 3, 9);
+      targetCameraPos.current.set(0, 2.8, 7.8);
     } else if (view === "anchor") {
-      targetCameraPos.current.set(studioLayout === "interview" ? -1.15 : 0, 1.8, 3.6);
+      targetCameraPos.current.set(studioLayout === "interview" ? -1.15 : 0, 1.85, 3.6);
     } else if (view === "twoshot") {
-      targetCameraPos.current.set(0, 2.1, 5.5);
+      targetCameraPos.current.set(0, 2.05, 5.2);
     } else if (view === "overhead") {
-      targetCameraPos.current.set(0, 8, 5);
+      targetCameraPos.current.set(0, 6.5, 4.5);
+    } else if (view === "auto") {
+      targetCameraPos.current.set(0, 2.05, 5.2);
     }
   };
 
