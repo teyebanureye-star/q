@@ -22,10 +22,23 @@ import {
   Bell,
   Sliders,
   Filter,
+  Download,
+  History,
+  FileSpreadsheet,
+  FileCode,
+  Shield,
+  Layers,
 } from "lucide-react";
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth, UserProfile, ADMIN_EMAIL } from "../context/AuthContext";
+import {
+  AuditLogItem,
+  fetchAuditLogs,
+  exportAuditLogsAsCSV,
+  exportAuditLogsAsJSON,
+  recordAuditLog,
+} from "../utils/auditLogger";
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -45,7 +58,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onUpdateBannedWords,
 }) => {
   const { user, profile, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"users" | "moderation" | "notice" | "health">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "moderation" | "notice" | "health" | "audit">("users");
 
   // User Management State
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
@@ -54,6 +67,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked" | "admins">("all");
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [auditLoading, setAuditLoading] = useState<boolean>(false);
+  const [auditSearchQuery, setAuditSearchQuery] = useState<string>("");
+  const [auditCategoryFilter, setAuditCategoryFilter] = useState<string>("all");
 
   // In-modal dialog states (no window.prompt/confirm/alert)
   const [suspendTarget, setSuspendTarget] = useState<{ user: UserProfile; reason: string } | null>(null);
@@ -96,12 +115,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  const loadAuditLogs = async () => {
+    setAuditLoading(true);
+    try {
+      const logs = await fetchAuditLogs(150);
+      setAuditLogs(logs);
+    } catch (err) {
+      console.warn("Could not load audit logs:", err);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
       setNoticeText(systemNotice || "");
+      if (activeTab === "audit") {
+        loadAuditLogs();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, activeTab]);
 
   const showToast = (msg: string) => {
     setActionSuccess(msg);
@@ -144,6 +178,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         )
       );
 
+      recordAuditLog({
+        action: "USER_UNBLOCKED",
+        category: "MODERATION",
+        details: `የተጠቃሚ ${targetUser.email} እገዳ ተነስቷል`,
+        targetId: targetUser.id,
+        targetEmail: targetUser.email,
+      });
+
       showToast(`የ ${targetUser.email} እገዳ በተሳካ ሁኔታ ተነስቷል!`);
     } catch (err: any) {
       console.error("Failed to update user block status:", err);
@@ -176,6 +218,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         )
       );
 
+      recordAuditLog({
+        action: "USER_BLOCKED",
+        category: "MODERATION",
+        details: `ተጠቃሚ ${targetUser.email} ታግዷል። ምክንያት፦ ${reason.trim() || "የስቱዲዮ ደንብ መጣስ"}`,
+        targetId: targetUser.id,
+        targetEmail: targetUser.email,
+        metadata: { reason: reason.trim() },
+      });
+
       showToast(`ተጠቃሚ ${targetUser.email} በስኬት ታግዷል!`);
       setSuspendTarget(null);
     } catch (err: any) {
@@ -201,6 +252,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setUsersList((prev) =>
         prev.map((u) => (u.id === targetUser.id ? { ...u, role: newRole } : u))
       );
+
+      recordAuditLog({
+        action: "ROLE_CHANGED",
+        category: "MODERATION",
+        details: `የ ${targetUser.email} ሚና ወደ ${newRole} ተቀይሯል`,
+        targetId: targetUser.id,
+        targetEmail: targetUser.email,
+        metadata: { newRole },
+      });
+
       showToast(`የ ${targetUser.email} ሚና ወደ ${newRole} ተቀይሯል!`);
     } catch (err: any) {
       setActionError("ሚና መቀየር አልተቻለም፦ " + (err?.message || ""));
@@ -222,6 +283,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     try {
       await deleteDoc(doc(db, "users", deleteTarget.id));
       setUsersList((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+
+      recordAuditLog({
+        action: "USER_DELETED",
+        category: "MODERATION",
+        details: `ተጠቃሚ ${deleteTarget.email} ከዳታቤዝ ተሰርዟል`,
+        targetId: deleteTarget.id,
+        targetEmail: deleteTarget.email,
+      });
+
       showToast(`የ ${deleteTarget.email} አካውንት ተሰርዟል`);
       setDeleteTarget(null);
     } catch (err: any) {
@@ -241,12 +311,28 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const updated = [...bannedWords, word];
     onUpdateBannedWords?.(updated);
     setNewBannedWord("");
+
+    recordAuditLog({
+      action: "BANNED_WORDS_UPDATE",
+      category: "MODERATION",
+      details: `አዲስ የተከለከለ ቃል ታክሏል፦ «${word}»`,
+      metadata: { addedWord: word },
+    });
+
     showToast(`«${word}» ወደ ተከለከሉ ቃላት ዝርዝር ታክሏል!`);
   };
 
   const handleRemoveBannedWord = (word: string) => {
     const updated = bannedWords.filter((w) => w !== word);
     onUpdateBannedWords?.(updated);
+
+    recordAuditLog({
+      action: "BANNED_WORDS_UPDATE",
+      category: "MODERATION",
+      details: `የተከለከለ ቃል ተሰርዟል፦ «${word}»`,
+      metadata: { removedWord: word },
+    });
+
     showToast(`«${word}» ከተከለከሉ ቃላት ተወግዷል`);
   };
 
@@ -260,6 +346,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handleSaveNotice = () => {
     const clean = noticeText.trim() || null;
     onUpdateSystemNotice?.(clean);
+
+    recordAuditLog({
+      action: "SYSTEM_NOTICE_UPDATE",
+      category: "ADMIN",
+      details: clean ? `የስቱዲዮ አጠቃላይ ማስታወቂያ ተሰራጭቷል፦ "${clean.slice(0, 50)}..."` : "የስቱዲዮ ማስታወቂያ ተነስቷል",
+      metadata: { notice: clean },
+    });
+
     showToast(clean ? "የስቱዲዮ አጠቃላይ ማስታወቂያ ተሰራጭቷል!" : "ማስታወቂያው ተነስቷል");
   };
 
@@ -276,6 +370,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     if (statusFilter === "active") return !u.isBlocked;
     if (statusFilter === "blocked") return !!u.isBlocked;
     if (statusFilter === "admins") return u.role === "admin";
+    return true;
+  });
+
+  // Filter audit logs
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const q = auditSearchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      log.action.toLowerCase().includes(q) ||
+      (log.details || "").toLowerCase().includes(q) ||
+      (log.userEmail || "").toLowerCase().includes(q) ||
+      (log.targetEmail || "").toLowerCase().includes(q);
+
+    if (!matchesSearch) return false;
+    if (auditCategoryFilter !== "all" && log.category !== auditCategoryFilter) return false;
     return true;
   });
 
@@ -365,6 +474,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           >
             <Bell className="w-3.5 h-3.5 text-cyan-400" />
             <span>የስቱዲዮ ማስታወቂያ (Notice)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("audit")}
+            className={`py-3 px-3 transition-colors border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === "audit"
+                ? "border-amber-500 text-amber-400 font-bold bg-neutral-900/60"
+                : "border-transparent text-neutral-400 hover:text-white"
+            }`}
+          >
+            <History className="w-3.5 h-3.5 text-amber-400" />
+            <span>የስርዓት ኦዲት ሎግ (Audit Log) ({auditLogs.length})</span>
           </button>
 
           <button
@@ -790,6 +912,140 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <li>የተከለከሉ ቃላትን በመመዝገብ አላስፈላጊ ዜናዎችን የመቆጣጠር መብት።</li>
                   <li>በደመናው ዳታቤዝ ላይ ዳታን የማጥፋት እና የማስተካከል ፈቃድ ለአድሚን ብቻ ተገድቧል።</li>
                 </ul>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: SYSTEM AUDIT LOG */}
+          {activeTab === "audit" && (
+            <div className="space-y-4">
+              {/* Header Toolbar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-neutral-950/80 p-3 rounded-xl border border-neutral-800">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={auditSearchQuery}
+                      onChange={(e) => setAuditSearchQuery(e.target.value)}
+                      placeholder="በድርጊት፣ ኢሜይል ወይም ዝርዝር ፈልግ..."
+                      className="w-full bg-neutral-900 border border-neutral-700/80 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-neutral-500 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <select
+                    value={auditCategoryFilter}
+                    onChange={(e) => setAuditCategoryFilter(e.target.value)}
+                    className="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-2 text-xs text-neutral-200 focus:border-amber-500 outline-none"
+                  >
+                    <option value="all">ሁሉም ዘርፎች (All)</option>
+                    <option value="AUTH">መግቢያና ምዝገባ (Auth)</option>
+                    <option value="MODERATION">ቁጥጥርና እገዳ (Moderation)</option>
+                    <option value="SCRIPT">የዜና ስክሪፕት (Script)</option>
+                    <option value="BROADCAST">ስርጭትና ንባብ (Broadcast)</option>
+                    <option value="EXPORT">ኤክስፖርት (Export)</option>
+                    <option value="ADMIN">አድሚን (Admin)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={loadAuditLogs}
+                    disabled={auditLoading}
+                    className="p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 transition-colors"
+                    title="እንደገና ጫን"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${auditLoading ? "animate-spin text-amber-400" : ""}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      exportAuditLogsAsCSV(filteredAuditLogs);
+                      showToast("የኦዲት ሎግ CSV ፋይል ዳውንሎድ ተደርጓል");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>CSV አውርድ</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      exportAuditLogsAsJSON(filteredAuditLogs);
+                      showToast("የኦዲት ሎግ JSON ፋይል ዳውንሎድ ተደርጓል");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    <FileCode className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>JSON</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Audit Logs List */}
+              <div className="bg-neutral-950/80 rounded-xl border border-neutral-800 overflow-hidden">
+                {auditLoading ? (
+                  <div className="py-12 flex flex-col items-center justify-center gap-2 text-neutral-400">
+                    <RefreshCw className="w-6 h-6 animate-spin text-amber-400" />
+                    <p className="text-xs">የኦዲት ሎግ መረጃዎች በመጫን ላይ ናቸው...</p>
+                  </div>
+                ) : filteredAuditLogs.length === 0 ? (
+                  <div className="py-12 text-center text-neutral-500 text-xs">
+                    ምንም የተመዘገበ የኦዲት ሎግ አልተገኘም
+                  </div>
+                ) : (
+                  <div className="divide-y divide-neutral-900 max-h-[50vh] overflow-y-auto">
+                    {filteredAuditLogs.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3 sm:p-3.5 hover:bg-neutral-900/60 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5"
+                      >
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 mt-0.5 ${
+                              item.category === "AUTH"
+                                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                : item.category === "MODERATION"
+                                ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                                : item.category === "BROADCAST"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : item.category === "SCRIPT"
+                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            }`}
+                          >
+                            {item.action}
+                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-neutral-200 font-medium break-words leading-relaxed">
+                              {item.details}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-500 font-mono">
+                              <span>በ፦ {item.userEmail || "የስርዓት ተጠቃሚ"}</span>
+                              {item.targetEmail && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-neutral-400">ዒላማ፦ {item.targetEmail}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right text-[11px] text-neutral-500 font-mono">
+                          {new Date(item.timestamp).toLocaleString("am-ET", {
+                            dateStyle: "short",
+                            timeStyle: "medium",
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

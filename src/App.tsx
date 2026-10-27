@@ -25,6 +25,7 @@ import {
   Bell,
   ShieldAlert,
   Smile,
+  FolderArchive,
 } from "lucide-react";
 import { VoiceAnchor, StudioSettings, NewsScriptPreset, DictionaryEntry, MusicBedType } from "./types/studio";
 import { FANA_ANCHORS, NEWS_PRESETS } from "./data/newsData";
@@ -52,6 +53,8 @@ import { NewsGraphicsModal } from "./components/NewsGraphicsModal";
 import { Virtual3DStudioModal } from "./components/Virtual3DStudioModal";
 import { TalkingAvatarModal } from "./components/TalkingAvatarModal";
 import { StudioAuthGate } from "./components/StudioAuthGate";
+import { UserWorkDashboardModal } from "./components/UserWorkDashboardModal";
+import { recordAuditLog } from "./utils/auditLogger";
 import { useAuth } from "./context/AuthContext";
 import { useLanguage } from "./context/LanguageContext";
 
@@ -137,6 +140,7 @@ export default function App() {
   const [isGraphicsOpen, setIsGraphicsOpen] = useState<boolean>(false);
   const [is3DStudioOpen, setIs3DStudioOpen] = useState<boolean>(false);
   const [isTalkingAvatarOpen, setIsTalkingAvatarOpen] = useState<boolean>(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState<boolean>(false);
 
   // Pronunciation Dictionary State
   const [dictionary, setDictionary] = useState<DictionaryEntry[]>(() => getStoredDictionary());
@@ -197,6 +201,12 @@ export default function App() {
       musicBed: preset.musicBed,
       selectedAnchorId: preset.recommendedAnchorId,
     });
+    recordAuditLog({
+      action: "PRESET_SELECTED",
+      category: "SCRIPT",
+      details: `የዜና አብነት ተመርጧል፦ "${preset.headlineAmharic}"`,
+      metadata: { presetId: preset.id, anchorId: preset.recommendedAnchorId },
+    });
     setNotification({
       type: "success",
       text: isEn
@@ -210,6 +220,12 @@ export default function App() {
     if (!script.trim()) return;
     const normalized = normalizeAmharicForSpeech(script, dictionary);
     setScript(normalized);
+    recordAuditLog({
+      action: "SCRIPT_NORMALIZED",
+      category: "SCRIPT",
+      details: "የዜና ስክሪፕት አጽህሮተ-ቃላትና ቁጥሮች ተስተካክለዋል",
+      metadata: { charLength: normalized.length },
+    });
     setNotification({
       type: "success",
       text: "አጽህሮተ-ቃላት፣ የቃላት አነባበብ እና ቁጥሮች ለንባብ በሚመች መልኩ ተስተካክለዋል!",
@@ -393,6 +409,17 @@ export default function App() {
     // Phonetically clean script with custom pronunciation dictionary (for Amharic)
     const spokenText = isEn ? rawText : normalizeAmharicForSpeech(rawText, dictionary);
 
+    recordAuditLog({
+      action: "BROADCAST_START",
+      category: "BROADCAST",
+      details: `ስርጭት በ${selectedAnchor.nameAmharic} ተጀመረ (${rawText.length} ፊደላት)`,
+      metadata: {
+        anchorId: selectedAnchor.id,
+        anchorName: selectedAnchor.nameAmharic,
+        musicBed: settings.musicBed,
+      },
+    });
+
     try {
       // Start recording master mix for download export
       studioAudio.startRecording();
@@ -517,6 +544,12 @@ export default function App() {
       }
       setIsPlaying(false);
       setStatusMessage("የዜና ስርጭቱ ተጠናቋል");
+      recordAuditLog({
+        action: "BROADCAST_COMPLETE",
+        category: "BROADCAST",
+        details: `ስርጭት በ${selectedAnchor.nameAmharic} በስኬት ተጠናቀቀ`,
+        metadata: { anchorId: selectedAnchor.id },
+      });
     }, 1000);
   };
 
@@ -549,6 +582,13 @@ export default function App() {
 
   // Export Combined Master Mix Audio
   const handleExportAudio = async () => {
+    recordAuditLog({
+      action: "AUDIO_EXPORT",
+      category: "EXPORT",
+      details: `የማስተር ድምፅ ፋይል ኤክስፖርት ተደርጓል (${selectedAnchor.nameAmharic})`,
+      metadata: { anchorId: selectedAnchor.id },
+    });
+
     if (exportedAudioUrl && exportedAudioBlob) {
       setIsExportOpen(true);
       return;
@@ -645,6 +685,7 @@ export default function App() {
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onOpenDictionary={() => setIsDictionaryOpen(true)}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
       />
@@ -749,6 +790,15 @@ export default function App() {
               <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 <button
                   type="button"
+                  onClick={() => setIsDashboardOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/25 to-amber-600/25 hover:from-amber-500/40 hover:to-amber-600/40 text-amber-300 border border-amber-500/50 text-xs font-bold backdrop-blur-sm transition-all cursor-pointer shadow-sm"
+                  title="የተጠቃሚ ስራዎች ማህደር እና ኦዲት ሎግ ዳሽቦርድ"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 text-amber-400" />
+                  <span>ስራ ማህደርና ኦዲት</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setIsHeadlineGeneratorOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/60 text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer"
                 >
@@ -847,6 +897,7 @@ export default function App() {
               onOpenGraphics={() => setIsGraphicsOpen(true)}
               onOpen3DStudio={() => setIs3DStudioOpen(true)}
               onOpenTalkingAvatar={() => setIsTalkingAvatarOpen(true)}
+              onOpenDashboard={() => setIsDashboardOpen(true)}
               isAdmin={isAdmin}
               onApplyToneSettings={handleApplyToneSettings}
             />
@@ -1005,6 +1056,27 @@ export default function App() {
         onPlayBroadcast={handleBroadcast}
         onStopBroadcast={handleStop}
         onUpdateScript={(newScript) => setScript(newScript)}
+      />
+
+      {/* User Works Archive & Audit Log Dashboard Modal */}
+      <UserWorkDashboardModal
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
+        currentScript={script}
+        currentAnchorId={selectedAnchor.id}
+        onLoadScriptToStudio={(loadedScript, anchorId) => {
+          setScript(loadedScript);
+          if (anchorId) {
+            const foundAnchor = FANA_ANCHORS.find((a) => a.id === anchorId);
+            if (foundAnchor) {
+              handleSelectAnchor(foundAnchor);
+            }
+          }
+          setNotification({
+            type: "success",
+            text: "የተመረጠው የዜና ስክሪፕት ወደ ስቱዲዮ ተጭኗል!",
+          });
+        }}
       />
     </div>
   );

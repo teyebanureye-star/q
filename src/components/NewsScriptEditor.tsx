@@ -21,6 +21,7 @@ import {
   PenLine,
   CheckCircle2,
   Smile,
+  FolderArchive,
 } from "lucide-react";
 import { NewsScriptPreset, MusicBedType } from "../types/studio";
 import { useLanguage } from "../context/LanguageContext";
@@ -51,6 +52,7 @@ interface NewsScriptEditorProps {
   onOpenGraphics?: () => void;
   onOpen3DStudio?: () => void;
   onOpenTalkingAvatar?: () => void;
+  onOpenDashboard?: () => void;
   isAdmin?: boolean;
   onApplyToneSettings?: (toneSettings: {
     anchorId: string;
@@ -80,6 +82,7 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
   onOpenGraphics,
   onOpen3DStudio,
   onOpenTalkingAvatar,
+  onOpenDashboard,
   isAdmin = false,
   onApplyToneSettings,
 }) => {
@@ -472,6 +475,17 @@ export const NewsScriptEditor: React.FC<NewsScriptEditorProps> = ({
             >
               <Smile className="w-3.5 h-3.5 text-amber-400" />
               <span>{isEn ? "Talking Avatar" : "ተንቀሳቃሽ ፎቶ (Avatar)"}</span>
+            </button>
+
+            {/* User Work Archive & Audit Log Dashboard */}
+            <button
+              type="button"
+              onClick={onOpenDashboard}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-neutral-900 to-neutral-850 hover:bg-neutral-800 text-amber-400 hover:text-amber-300 transition-all border border-amber-500/40 font-bold cursor-pointer shadow-sm"
+              title="የተጠቃሚ ስራዎች ማህደር እና ኦዲት ሎግ ዳሽቦርድ"
+            >
+              <FolderArchive className="w-3.5 h-3.5 text-amber-400" />
+              <span>{isEn ? "Work Archive & Audit" : "የስራ ማህደርና ኦዲት"}</span>
             </button>
           </div>
         </div>

@@ -57,6 +57,47 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "userId", "originalWord", "phoneticReplacement", "enabled"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Comprehensive system audit trail tracking user activities, content creations, broadcasts, and security events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string", "maxLength": 100 },
+        "action": { "type": "string", "maxLength": 80 },
+        "actionLabelAmharic": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 50 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "metadata": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "userEmail", "action", "actionLabelAmharic", "createdAt"]
+    },
+    "UserWorkItem": {
+      "title": "UserWorkItem",
+      "description": "Persistent work items, scripts, audio packages, and broadcast videos produced by journalists and users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "enum": ["script", "broadcast_video", "audio_export", "interview"] },
+        "content": { "type": "string", "maxLength": 20000 },
+        "category": { "type": "string", "maxLength": 50 },
+        "anchorId": { "type": "string", "maxLength": 50 },
+        "anchorName": { "type": "string", "maxLength": 100 },
+        "durationSeconds": { "type": "number" },
+        "musicBed": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "userEmail", "title", "type", "content", "createdAt"]
     }
   },
   "firestore": {
@@ -75,6 +116,14 @@
     "/users/{userId}/dictionary/{entryId}": {
       "schema": "DictionaryItem",
       "description": "Per-user customized pronunciation dictionary entries"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Chronological audit trail of all actions and user activities in the studio"
+    },
+    "/userWorks/{workId}": {
+      "schema": "UserWorkItem",
+      "description": "All news scripts, broadcast packages, and recordings created by users"
     }
   }
 }

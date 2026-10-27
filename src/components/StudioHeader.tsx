@@ -1,5 +1,5 @@
 import React from "react";
-import { Radio, Mic, Play, Square, Loader2, User, LogOut, Crown, Globe } from "lucide-react";
+import { Radio, Mic, Play, Square, Loader2, User, LogOut, Crown, Globe, FolderArchive } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -11,6 +11,7 @@ interface StudioHeaderProps {
   activeSection: string;
   setActiveSection: (sec: string) => void;
   onOpenDictionary?: () => void;
+  onOpenDashboard?: () => void;
   onOpenAuth: () => void;
   onOpenAdmin: () => void;
 }
@@ -23,6 +24,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   activeSection,
   setActiveSection,
   onOpenDictionary,
+  onOpenDashboard,
   onOpenAuth,
   onOpenAdmin,
 }) => {
@@ -79,10 +81,31 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           >
             <span>{t("navDictionary")}</span>
           </button>
+          <button
+            onClick={() => onOpenDashboard?.()}
+            className="transition-colors whitespace-nowrap shrink-0 hover:text-amber-300 text-amber-400/90 font-medium flex items-center gap-1.5"
+            title="የተጠቃሚ ስራዎች ማህደር እና ኦዲት ሎግ ዳሽቦርድ"
+          >
+            <FolderArchive className="w-4 h-4 text-amber-400" />
+            <span>{language === "am" ? "የስራ ማህደርና ኦዲት" : "Works & Audit"}</span>
+          </button>
         </nav>
 
         {/* Zone 3: Language Toggle, Auth & Primary Broadcast CTA */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Quick Dashboard Button */}
+          <button
+            type="button"
+            onClick={onOpenDashboard}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700/80 hover:border-amber-500/60 text-xs font-semibold text-neutral-200 hover:text-white transition-all shadow-sm cursor-pointer"
+            title={language === "am" ? "የተጠቃሚ ስራዎች ማህደር እና ኦዲት ሎግ" : "Works & Audit Dashboard"}
+          >
+            <FolderArchive className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline font-bold text-amber-300">
+              {language === "am" ? "ማህደርና ኦዲት" : "Dashboard"}
+            </span>
+          </button>
+
           {/* Language Toggle Component */}
           <button
             type="button"

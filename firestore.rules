@@ -70,5 +70,33 @@ service cloud.firestore {
       // ONLY ADMIN CAN DELETE DATA
       allow delete: if isAdmin();
     }
+
+    // System Audit Log Collection (Tamper-proof activity audit trail)
+    match /auditLogs/{logId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() &&
+        isValidId(logId) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == logId;
+      // Immutable: No edits allowed once an audit log record is created
+      allow update: if false;
+      // Only administrators can purge or manage historical audit logs
+      allow delete: if isAdmin();
+    }
+
+    // Persistent User Works (News Scripts, Broadcast Recordings, Exported Packages)
+    match /userWorks/{workId} {
+      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        isValidId(workId) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.id == workId;
+      allow update: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin()) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId;
+      allow delete: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
   }
 }
