@@ -158,18 +158,9 @@ function drawAnchorAvatar({
   if (!img || !img.complete || img.naturalWidth === 0) return;
 
   const { x, y, width, height } = bounds;
-  const pivotX = x + width * 0.5;
-  // Natural neck base pivot: articulates head and neck while keeping shoulders anchored
-  const pivotY = y + height * 0.65;
 
   ctx.save();
-  // Pivot transform: articulates neck & head naturally while keeping base torso anchored
-  ctx.translate(pivotX, pivotY);
-  ctx.rotate(tilt);
-  ctx.translate(sway, nod);
-  ctx.translate(-pivotX, -pivotY);
-
-  // Draw Base Anchor Image
+  // Studio & Anchor Base: 100% Upright, Locked & Steady (ZERO room tilting, zero room swaying)
   ctx.drawImage(img, x, y, width, height);
 
   // Eye Blinking
@@ -688,64 +679,17 @@ export const TalkingAvatarModal: React.FC<TalkingAvatarModalProps> = ({
         }
       }
 
-      // 4. Kinematics for Host and Guest (Articulated Neck & Head Motion)
-      // Host motion: lifelike neck articulation (speech cadence nod + conversational tilt & sway)
+      // 4. Speaker State & Kinematics for Host and Guest: 100% Upright & Steady (No studio sway, no studio tilt)
       const isHostSpeaking = studioMode === "solo" ? isPlaying : isPlaying && effectiveSpeaker === "interviewer";
-      let hostTargetNod = Math.sin(elapsed * 1.5) * 4.5;
-      let hostTargetTilt = (studioMode === "interview" ? 0.025 : 0) + Math.sin(elapsed * 0.9) * 0.025;
-      let hostTargetSway = Math.cos(elapsed * 0.8) * 2.0;
-
-      if (isHostSpeaking) {
-        const cadence = Math.sin(elapsed * 3.6);
-        const kick = Math.sin(elapsed * 7.2) * Math.max(0, audioEnergy - 0.1);
-        // Clear, lifelike neck nod on speech emphasis beats (up to 25px travel)
-        hostTargetNod = cadence * 11.0 + kick * 14.0 + 4.0;
-        // Expressive conversational head & neck tilt
-        hostTargetTilt =
-          (studioMode === "interview" ? 0.035 : 0) +
-          Math.sin(elapsed * 1.5) * 0.05 +
-          Math.cos(elapsed * 2.8) * 0.025 * audioEnergy;
-        // Natural subtle torso and neck sway
-        hostTargetSway = Math.sin(elapsed * 1.4) * 4.5 + Math.cos(elapsed * 2.8) * 2.2 * audioEnergy;
-      } else if (studioMode === "interview" && isPlaying) {
-        // Listening to guest with attentive responsive head nods
-        hostTargetNod = Math.sin(elapsed * 2.0) * 8.0;
-        hostTargetTilt = 0.035 + Math.sin(elapsed * 0.9) * 0.025;
-        hostTargetSway = Math.cos(elapsed * 0.9) * 2.2;
-      }
-
-      hostMotionRef.current.nod += (hostTargetNod - hostMotionRef.current.nod) * 0.14;
-      hostMotionRef.current.tilt += (hostTargetTilt - hostMotionRef.current.tilt) * 0.12;
-      hostMotionRef.current.sway += (hostTargetSway - hostMotionRef.current.sway) * 0.12;
-
-      // Guest motion (Interview mode): lifelike neck articulation
       const isGuestSpeaking = studioMode === "interview" && isPlaying && effectiveSpeaker === "interviewee";
-      let guestTargetNod = Math.sin(elapsed * 1.5 + 1) * 4.5;
-      let guestTargetTilt = -0.025 + Math.sin(elapsed * 0.9 + 1) * 0.025;
-      let guestTargetSway = Math.cos(elapsed * 0.8 + 1) * 2.0;
 
-      if (isGuestSpeaking) {
-        const cadence = Math.sin(elapsed * 3.6);
-        const kick = Math.sin(elapsed * 7.2) * Math.max(0, audioEnergy - 0.1);
-        // Clear, lifelike neck nod on speech emphasis beats (up to 25px travel)
-        guestTargetNod = cadence * 11.0 + kick * 14.0 + 4.0;
-        // Expressive conversational head & neck tilt
-        guestTargetTilt =
-          -0.035 +
-          Math.sin(elapsed * 1.5) * 0.05 +
-          Math.cos(elapsed * 2.8) * 0.025 * audioEnergy;
-        // Natural subtle torso and neck sway
-        guestTargetSway = Math.sin(elapsed * 1.4) * 4.5 + Math.cos(elapsed * 2.8) * 2.2 * audioEnergy;
-      } else if (isPlaying) {
-        // Listening to host with attentive responsive head nods
-        guestTargetNod = Math.sin(elapsed * 2.0 + 1.2) * 8.0;
-        guestTargetTilt = -0.035 + Math.sin(elapsed * 0.9 + 1) * 0.025;
-        guestTargetSway = Math.cos(elapsed * 0.9 + 1) * 2.2;
-      }
+      hostMotionRef.current.nod = 0;
+      hostMotionRef.current.tilt = 0;
+      hostMotionRef.current.sway = 0;
 
-      guestMotionRef.current.nod += (guestTargetNod - guestMotionRef.current.nod) * 0.14;
-      guestMotionRef.current.tilt += (guestTargetTilt - guestMotionRef.current.tilt) * 0.12;
-      guestMotionRef.current.sway += (guestTargetSway - guestMotionRef.current.sway) * 0.12;
+      guestMotionRef.current.nod = 0;
+      guestMotionRef.current.tilt = 0;
+      guestMotionRef.current.sway = 0;
 
       // 5. Clear & Render Background
       ctx.clearRect(0, 0, width, height);
